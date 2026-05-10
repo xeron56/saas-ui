@@ -40,6 +40,7 @@ export * from './role-service-update-role-permission-request';
 export * from './role-service-update-role-request';
 export * from './role-service-update-role-request-role';
 export * from './search-user-response-search-user';
+export * from './school';
 export * from './stripe-ephemeral-key';
 export * from './stripe-invoice';
 export * from './stripe-payment-intent';

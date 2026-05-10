@@ -34,7 +34,7 @@ import { accessTree } from '@/utils/tree';
 import Realtime from './components/Realtime';
 import StripeProvider from './components/StripeProvider';
 import React from 'react';
-import { loginOut } from '@/utils/auth';
+import { isAnonymousPath, loginOut } from '@/utils/auth';
 import enUS0 from 'antd/es/locale/en_US';
 import zhCN0 from 'antd/es/locale/zh_CN';
 // const isDev = process.env.NODE_ENV === 'development';
@@ -111,7 +111,7 @@ export async function getInitialState(): Promise<{
     return undefined;
   };
 
-  const currentUser = await fetchUserInfo();
+  const currentUser = isAnonymousPath() ? undefined : await fetchUserInfo();
 
   if (currentUser) {
     if (currentUser.currentTenant?.isHost) {
@@ -185,7 +185,7 @@ export async function qiankun() {
 // 动态添加路由（含微应用路由）
 let extraRoutes: Route[] = [];
 export async function render(oldRender: () => any) {
-  extraRoutes = await getMenu();
+  extraRoutes = isAnonymousPath() ? [] : await getMenu();
   oldRender();
 }
 

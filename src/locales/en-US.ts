@@ -9,6 +9,7 @@ import saas from './en-US/saas';
 import sys from './en-US/sys';
 import admin from './en-US/admin';
 import product from './en-US/product';
+import school from './en-US/school';
 export default {
   'navBar.lang': 'Languages',
   'layout.user.link.help': 'Help',
@@ -29,4 +30,5 @@ export default {
   ...sys,
   ...admin,
   ...product,
+  ...school,
 };

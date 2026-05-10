@@ -1,7 +1,11 @@
 import { AuthWebApi } from '@gosaas/api';
 import { stringify } from 'querystring';
 
-const donnotneedauthpath = ['/user/login', '/user/register'];
+export const anonymousPaths = ['/user/login', '/user/register', '/school/public/exam-results'];
+
+export const isAnonymousPath = (pathname = window.location.pathname) =>
+  anonymousPaths.includes(pathname);
+
 /**
  * 退出登录，并且将当前的 url 保存
  */
@@ -9,7 +13,7 @@ export const loginOut = async () => {
   await new AuthWebApi().authWebWebLogout({ body: {} });
   const { search, pathname } = window.location;
 
-  if (donnotneedauthpath.includes(pathname)) {
+  if (isAnonymousPath(pathname)) {
     return;
   }
 

@@ -1,0 +1,246 @@
+import type { ProColumnType } from '@ant-design/pro-components';
+import { ProFormSelect, ProFormText } from '@ant-design/pro-components';
+import { FormattedMessage, useIntl } from '@umijs/max';
+import React, { useEffect, useState } from 'react';
+import type {
+  V1CreateStudentTransportFeeRequest,
+  V1PickupPoint,
+  V1RoutePickupPoint,
+  V1Student,
+  V1StudentTransportFee,
+  V1TransportFeeMaster,
+  V1TransportRoute,
+} from '@gosaas/api';
+import {
+  PickupPointServiceApi,
+  RoutePickupPointServiceApi,
+  StudentServiceApi,
+  StudentTransportFeeServiceApi,
+  TransportFeeMasterServiceApi,
+  TransportRouteServiceApi,
+} from '@gosaas/api';
+import ReferencePage from '../../Student/components/ReferencePage';
+
+const service = new StudentTransportFeeServiceApi();
+const studentService = new StudentServiceApi();
+const feeMasterService = new TransportFeeMasterServiceApi();
+const routePickupService = new RoutePickupPointServiceApi();
+const routeService = new TransportRouteServiceApi();
+const pickupService = new PickupPointServiceApi();
+
+const keyedById = <T extends { id?: string }>(items: T[] = []) =>
+  items.reduce<Record<string, T>>((ret, item) => {
+    if (item.id) {
+      ret[item.id] = item;
+    }
+    return ret;
+  }, {});
+
+const studentsByEnrollment = (items: V1Student[] = []) =>
+  items.reduce<Record<string, V1Student>>((ret, item) => {
+    if (item.enrollment?.id) {
+      ret[item.enrollment.id] = item;
+    }
+    return ret;
+  }, {});
+
+const studentLabel = (student?: V1Student) => {
+  if (!student) {
+    return '-';
+  }
+  return [
+    student.admissionNo,
+    [student.firstName, student.lastName].filter(Boolean).join(' '),
+    student.enrollment?.rollNo,
+  ]
+    .filter(Boolean)
+    .join(' - ');
+};
+
+const routePickupLabel = (
+  item: V1RoutePickupPoint | undefined,
+  routes: Record<string, V1TransportRoute>,
+  pickups: Record<string, V1PickupPoint>,
+) => {
+  if (!item) {
+    return '-';
+  }
+  return [
+    routes[item.transportRouteId || '']?.routeTitle || item.transportRouteId,
+    pickups[item.pickupPointId || '']?.name || item.pickupPointId,
+    item.fees ? `BDT ${item.fees}` : undefined,
+  ]
+    .filter(Boolean)
+    .join(' - ');
+};
+
+const TableList: React.FC = () => {
+  const intl = useIntl();
+  const [students, setStudents] = useState<Record<string, V1Student>>({});
+  const [feeMasters, setFeeMasters] = useState<Record<string, V1TransportFeeMaster>>({});
+  const [routePickups, setRoutePickups] = useState<Record<string, V1RoutePickupPoint>>({});
+  const [routes, setRoutes] = useState<Record<string, V1TransportRoute>>({});
+  const [pickups, setPickups] = useState<Record<string, V1PickupPoint>>({});
+
+  useEffect(() => {
+    Promise.all([
+      studentService.studentServiceListStudent2({
+        body: { pageSize: 200, sort: ['admission_no'] },
+      }),
+      feeMasterService.transportFeeMasterServiceListTransportFeeMaster2({
+        body: { pageSize: 200, sort: ['academic_session_id', 'month'] },
+      }),
+      routePickupService.routePickupPointServiceListRoutePickupPoint2({
+        body: { pageSize: 200, sort: ['order_number'] },
+      }),
+      routeService.transportRouteServiceListTransportRoute2({
+        body: { pageSize: 100, sort: ['route_title'] },
+      }),
+      pickupService.pickupPointServiceListPickupPoint2({
+        body: { pageSize: 100, sort: ['name'] },
+      }),
+    ]).then(([studentResp, feeResp, routePickupResp, routeResp, pickupResp]) => {
+      setStudents(studentsByEnrollment(studentResp.data.items));
+      setFeeMasters(keyedById(feeResp.data.items));
+      setRoutePickups(keyedById(routePickupResp.data.items));
+      setRoutes(keyedById(routeResp.data.items));
+      setPickups(keyedById(pickupResp.data.items));
+    });
+  }, []);
+
+  const columns: ProColumnType<V1StudentTransportFee>[] = [
+    {
+      title: <FormattedMessage id="school.student.student" defaultMessage="Student" />,
+      dataIndex: 'studentEnrollmentId',
+      valueType: 'text',
+      render: (_, record) => studentLabel(students[record.studentEnrollmentId || '']),
+    },
+    {
+      title: (
+        <FormattedMessage
+          id="school.transport.routePickupPoint"
+          defaultMessage="Route Pickup Point"
+        />
+      ),
+      dataIndex: 'routePickupPointId',
+      valueType: 'text',
+      render: (_, record) =>
+        routePickupLabel(routePickups[record.routePickupPointId || ''], routes, pickups),
+    },
+    {
+      title: <FormattedMessage id="school.transport.feeMaster" defaultMessage="Fee Master" />,
+      dataIndex: 'transportFeeMasterId',
+      valueType: 'text',
+      render: (_, record) => {
+        const feeMaster = feeMasters[record.transportFeeMasterId || ''];
+        return feeMaster?.month || record.transportFeeMasterId || '-';
+      },
+    },
+    {
+      title: <FormattedMessage id="school.transport.generatedBy" defaultMessage="Generated By" />,
+      dataIndex: 'generatedBy',
+      valueType: 'text',
+    },
+  ];
+
+  return (
+    <ReferencePage<V1StudentTransportFee>
+      columns={columns}
+      create={(fields: V1CreateStudentTransportFeeRequest) =>
+        service.studentTransportFeeServiceCreateStudentTransportFee({ body: fields })
+      }
+      delete={(record) =>
+        service.studentTransportFeeServiceDeleteStudentTransportFee({ id: record.id! })
+      }
+      get={async (id) =>
+        (await service.studentTransportFeeServiceGetStudentTransportFee({ id })).data
+      }
+      list={async (req: any) =>
+        (await service.studentTransportFeeServiceListStudentTransportFee2({ body: req })).data
+      }
+      title={(record) =>
+        [
+          studentLabel(students[record.studentEnrollmentId || '']),
+          feeMasters[record.transportFeeMasterId || '']?.month,
+        ]
+          .filter(Boolean)
+          .join(' - ') || record.id
+      }
+      update={(record, fields: any) =>
+        service.studentTransportFeeServiceUpdateStudentTransportFee2({
+          studentFeeId: record.id!,
+          body: { studentFee: { id: record.id!, ...fields } },
+        })
+      }
+      formItems={
+        <>
+          <ProFormSelect
+            name="studentEnrollmentId"
+            label={intl.formatMessage({
+              id: 'school.student.student',
+              defaultMessage: 'Student',
+            })}
+            rules={[{ required: true }]}
+            request={async ({ keyWords }) => {
+              const resp = await studentService.studentServiceListStudent2({
+                body: { pageSize: 100, search: keyWords, sort: ['admission_no'] },
+              });
+              return (resp.data.items || [])
+                .filter((item) => item.enrollment?.id)
+                .map((item) => ({
+                  label: studentLabel(item),
+                  value: item.enrollment!.id,
+                }));
+            }}
+            showSearch
+          />
+          <ProFormSelect
+            name="routePickupPointId"
+            label={intl.formatMessage({
+              id: 'school.transport.routePickupPoint',
+              defaultMessage: 'Route Pickup Point',
+            })}
+            rules={[{ required: true }]}
+            request={async () => {
+              const resp = await routePickupService.routePickupPointServiceListRoutePickupPoint2({
+                body: { pageSize: 200, sort: ['order_number'] },
+              });
+              return (resp.data.items || []).map((item) => ({
+                label: routePickupLabel(item, routes, pickups),
+                value: item.id,
+              }));
+            }}
+            showSearch
+          />
+          <ProFormSelect
+            name="transportFeeMasterId"
+            label={intl.formatMessage({
+              id: 'school.transport.feeMaster',
+              defaultMessage: 'Fee Master',
+            })}
+            rules={[{ required: true }]}
+            request={async () => {
+              const resp = await feeMasterService.transportFeeMasterServiceListTransportFeeMaster2({
+                body: { pageSize: 200, sort: ['academic_session_id', 'month'] },
+              });
+              return (resp.data.items || []).map((item) => ({
+                label: item.month || item.id,
+                value: item.id,
+              }));
+            }}
+            showSearch
+          />
+          <ProFormText
+            name="generatedBy"
+            label={intl.formatMessage({
+              id: 'school.transport.generatedBy',
+              defaultMessage: 'Generated By',
+            })}
+          />
+        </>
+      }
+    />
+  );
+};
+
+export default TableList;

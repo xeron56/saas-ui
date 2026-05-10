@@ -153,7 +153,7 @@ const NoticeIconView: React.FC = () => {
       marginLeft: 'auto',
       overflow: 'hidden',
       cursor: 'pointer',
-      alignItems:'center',
+      alignItems: 'center',
       padding: '0 8px',
       borderRadius: token.borderRadius,
       '&:hover': {
