@@ -1,9 +1,4 @@
-import {
-  CheckoutServiceApi,
-  StripePaymentIntent,
-  type V1Plan,
-  type V1Price,
-} from '@gosaas/api';
+import { CheckoutServiceApi, StripePaymentIntent, type V1Plan, type V1Price } from '@gosaas/api';
 import styles from './index.less';
 import React, { useState, useEffect } from 'react';
 import { Button, message, InputNumber, Radio } from 'antd';
@@ -14,8 +9,8 @@ import { useStripe, PaymentElement, Elements, ElementsConsumer } from '@stripe/r
 export type PriceTableProps = {
   data: Map<string, Array<{ plan: V1Plan; price: V1Price }>>;
   currentPeriod: string;
-  onPeriodChange: (v: string) => undefined;
-  onConfirm: (v: { plan: V1Plan; price: V1Price }) => undefined;
+  onPeriodChange: (v: string) => void;
+  onConfirm: (v: { plan: V1Plan; price: V1Price }) => void;
 };
 
 const PriceTable: React.FC<PriceTableProps> = (props) => {
@@ -144,12 +139,22 @@ const PriceTable: React.FC<PriceTableProps> = (props) => {
                     const resp = await checkoutSrv.checkoutServiceCheckoutNow({
                       body: {
                         provider: 'stripe',
-                        items: [{ priceId: p.price.id, quantity: quantity.toString(),bizPayload:{
-                          "tenant_id":initialState?.currentTenant?.tenant?.id
-                        } }],
+                        items: [
+                          {
+                            priceId: p.price.id,
+                            quantity: quantity.toString(),
+                            bizPayload: {
+                              tenant_id: initialState?.currentTenant?.tenant?.id,
+                            },
+                          },
+                        ],
                       },
                     });
-                    setPaymentIntent(resp.data.subscription?.providerInfo?.stripe?.subscription?.latestInvoice?.paymentIntent || resp.data.order?.paymentProviderInfo?.stripe?.paymentIntent);
+                    setPaymentIntent(
+                      resp.data.subscription?.providerInfo?.stripe?.subscription?.latestInvoice
+                        ?.paymentIntent ||
+                        resp.data.order?.paymentProviderInfo?.stripe?.paymentIntent,
+                    );
                   } finally {
                     setLoading(false);
                   }

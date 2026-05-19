@@ -4,6 +4,8 @@ import { CentrifugeContext } from './context';
 import { notification } from 'antd';
 // import { useModel } from '@@/plugin-model';
 
+declare const BASE_URL: string;
+
 type Props = {
   children: React.ReactNode;
 };

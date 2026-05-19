@@ -1,5 +1,6 @@
 import type { V1Notification } from '@gosaas/api';
 import { NotificationServiceApi } from '@gosaas/api';
+import { request } from '@umijs/max';
 import { Card, Space, Switch } from 'antd';
 import { Avatar, Divider, List, Skeleton, Badge } from 'antd';
 import { useEffect, useState } from 'react';
@@ -69,8 +70,20 @@ const NoticeIconView: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unreadOnly]);
 
+  const markLegacyNotificationRead = async (id: string) => {
+    await request<string>(
+      id === '-'
+        ? '/notification/notification-mark-all-as-read'
+        : `/notification/notification-mark-as-read/${encodeURIComponent(id)}`,
+      {
+        method: 'GET',
+        responseType: 'text',
+      },
+    );
+  };
+
   const changeReadState = async (id: string) => {
-    await service.notificationServiceReadNotification({ id: id, body: {} });
+    await markLegacyNotificationRead(id);
     //refech
     let shouldReduce = false;
 
@@ -91,7 +104,7 @@ const NoticeIconView: React.FC = () => {
   };
 
   const clearReadState = async () => {
-    await service.notificationServiceReadNotification({ id: '-', body: {} });
+    await markLegacyNotificationRead('-');
     //reload state
     await loadMoreData('');
   };
@@ -153,7 +166,7 @@ const NoticeIconView: React.FC = () => {
       marginLeft: 'auto',
       overflow: 'hidden',
       cursor: 'pointer',
-      alignItems:'center',
+      alignItems: 'center',
       padding: '0 8px',
       borderRadius: token.borderRadius,
       '&:hover': {

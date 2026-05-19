@@ -21,7 +21,6 @@ import type {
 import { UserAdminServiceApi } from '@gosaas/api';
 import { UserOutlined } from '@ant-design/icons';
 import { useIntl } from '@umijs/max';
-import RoleTag from '@/components/Roletag';
 import { genderValueEnum } from '@/pages/Sys/User/gender';
 
 const TableList: React.FC = () => {

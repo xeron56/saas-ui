@@ -5,7 +5,7 @@ import { SettingDrawer } from '@ant-design/pro-components';
 import type { RunTimeLayoutConfig } from '@umijs/max';
 import { getLocale } from '@umijs/max';
 import defaultSettings from '../config/defaultSettings';
-import { AccountApi, TenantServiceApi } from '@gosaas/api';
+import { AccountApi, TenantServiceApi, PermissionServiceApi } from '@gosaas/api';
 import { message, notification } from 'antd';
 import { addLocale } from '@@/plugin-locale/localeExports';
 import type { RequestConfig } from '@umijs/max';
@@ -16,6 +16,7 @@ import {
   saasRequestInterceptor,
   authRespInterceptor,
   setSettingTenantId,
+  setPermission,
   bizErrorInterceptor,
 } from '@gosaas/core';
 import type { UserInfo, UserTenantInfo } from '@gosaas/core';
@@ -35,9 +36,12 @@ import Realtime from './components/Realtime';
 import StripeProvider from './components/StripeProvider';
 import React from 'react';
 import { loginOut } from '@/utils/auth';
+import { isPublicRoutePath } from '@/utils/publicRoutes';
 import enUS0 from 'antd/es/locale/en_US';
 import zhCN0 from 'antd/es/locale/zh_CN';
 // const isDev = process.env.NODE_ENV === 'development';
+
+declare const BASE_URL: string;
 
 // 错误处理方案： 错误类型
 
@@ -71,6 +75,7 @@ export async function getInitialState(): Promise<{
   fetchUserInfo?: () => Promise<UserInfo | undefined>;
   changeTenant?: (name: string) => Promise<void>;
 }> {
+  const isPublicRoute = isPublicRoutePath();
   let currentTenant: UserTenantInfo | undefined = undefined;
 
   await pRetry(
@@ -103,17 +108,35 @@ export async function getInitialState(): Promise<{
 
   const fetchUserInfo = async () => {
     try {
-      const resp = await new AccountApi().accountGetProfile({ showType: ErrorShowType.SILENT });
+      const resp = await new AccountApi().accountGetProfile({
+        showType: ErrorShowType.SILENT,
+      } as AxiosRequestConfig);
       return resp.data as any as UserInfo;
     } catch (error) {
-      loginOut();
+      if (!isPublicRoutePath()) {
+        loginOut();
+      }
     }
     return undefined;
   };
 
-  const currentUser = await fetchUserInfo();
-
+  const currentUser = isPublicRoute ? undefined : await fetchUserInfo();
+  let permissionList: any[] = [];
   if (currentUser) {
+    try {
+      const permissionResp = await new PermissionServiceApi().permissionServiceGetCurrent();
+      permissionList = permissionResp.data?.acl ?? [];
+    } catch (_e) {
+      permissionList = [];
+    }
+  }
+  if (permissionList.length > 0) {
+    setPermission({ values: permissionList });
+  } else {
+    setPermission(undefined);
+  }
+
+  if (!isPublicRoute && currentUser) {
     if (currentUser.currentTenant?.isHost) {
       if ((currentUser.tenants ?? []).length > 0) {
         if (!currentUser.tenants.find((p) => p.isHost)) {
@@ -136,6 +159,9 @@ export async function getInitialState(): Promise<{
 let initialMenus: Route[] | undefined = undefined;
 
 async function getMenu() {
+  if (isPublicRoutePath()) {
+    return [];
+  }
   if (initialMenus) {
     return initialMenus;
   }
@@ -168,16 +194,11 @@ export async function qiankun() {
   const appArray = Object.keys(apps).map((key) => {
     return { name: key, ...apps[key] };
   });
-  console.log(appArray);
   return {
     apps: appArray,
     lifeCycles: {
-      beforeLoad: (props: any) => {
-        console.log(props);
-      },
-      afterMount: (props: any) => {
-        console.log(props);
-      },
+      beforeLoad: () => {},
+      afterMount: () => {},
     },
   };
 }
@@ -190,7 +211,6 @@ export async function render(oldRender: () => any) {
 }
 
 export function patchClientRoutes(params: { routes: RouteObject[] }) {
-  console.log(extraRoutes);
   const withLayout = params.routes.find((p) => (p as any).id === 'ant-design-pro-layout')!
     .children!;
   extraRoutes.forEach((it) => {
@@ -199,7 +219,6 @@ export function patchClientRoutes(params: { routes: RouteObject[] }) {
       withLayout!.unshift(it);
     }
   });
-  console.log(params.routes);
 }
 
 // ProLayout 支持的api https://procomponents.ant.design/components/layout
@@ -262,6 +281,9 @@ export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) =
 };
 
 export function rootContainer(container: any) {
+  if (isPublicRoutePath()) {
+    return container;
+  }
   return React.createElement(StripeProvider, null, React.createElement(Realtime, null, container));
 }
 
@@ -277,8 +299,9 @@ function errorInterceptor() {
       let errorMessage = '';
       let errorCode = code;
 
-      if ('showType' in config) {
-        showType = config.showType;
+      const requestConfig = (config ?? {}) as AxiosRequestConfig & { showType?: ErrorShowType };
+      if (requestConfig.showType !== undefined) {
+        showType = requestConfig.showType;
       }
 
       if (error instanceof FriendlyError) {

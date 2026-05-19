@@ -1,4 +1,4 @@
-import * as React from 'react';
+import 'axios';
 
 declare module 'slash2';
 declare module '*.css';
@@ -25,6 +25,6 @@ declare const BASE_URL: string;
 
 declare module 'axios' {
   export interface AxiosRequestConfig {
-    showType: number;
+    showType?: number;
   }
 }

@@ -15,7 +15,7 @@ export type CurrencyFormProps = {
   modelType: string | undefined;
 };
 //@ATT:this was created to make nested dynamic elements! This is hard!
-const CurrencyForm: React.FC<CurrencyFormProps> = (props) => {
+const CurrencyForm: React.FC<CurrencyFormProps> = () => {
   const intl = useIntl();
   return (
     <ProFormList

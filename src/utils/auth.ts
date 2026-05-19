@@ -1,5 +1,6 @@
 import { AuthWebApi } from '@gosaas/api';
 import { stringify } from 'querystring';
+import { isPublicRoutePath } from './publicRoutes';
 
 const donnotneedauthpath = ['/user/login', '/user/register'];
 /**
@@ -9,7 +10,7 @@ export const loginOut = async () => {
   await new AuthWebApi().authWebWebLogout({ body: {} });
   const { search, pathname } = window.location;
 
-  if (donnotneedauthpath.includes(pathname)) {
+  if (donnotneedauthpath.includes(pathname) || isPublicRoutePath(pathname)) {
     return;
   }
 

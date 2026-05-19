@@ -1,9 +1,26 @@
 import Footer from '@/components/Footer';
-import { LockOutlined, MobileOutlined, UserOutlined } from '@ant-design/icons';
-import { LoginForm, ProFormCaptcha, ProFormText } from '@ant-design/pro-components';
-import { FormattedMessage, SelectLang, useIntl, useModel, history } from '@umijs/max';
-import { Alert, Button, message, Tabs } from 'antd';
+import {
+  CalendarOutlined,
+  IdcardOutlined,
+  LockOutlined,
+  MailOutlined,
+  MobileOutlined,
+  UploadOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
+import {
+  LoginForm,
+  ProFormCaptcha,
+  ProFormDatePicker,
+  ProFormSelect,
+  ProFormText,
+  ProFormTextArea,
+  ProFormUploadButton,
+} from '@ant-design/pro-components';
+import { FormattedMessage, SelectLang, useIntl, useModel, history, request } from '@umijs/max';
+import { Alert, Button, message, Spin, Tabs } from 'antd';
 import type { InputRef } from 'antd';
+import type { UploadFile } from 'antd/es/upload/interface';
 import React, { useState, useRef, useEffect } from 'react';
 import { FriendlyError } from '@gosaas/core';
 import { AuthApi } from '@gosaas/api';
@@ -33,13 +50,86 @@ interface RegisterResult {
 
 type RegisterParams = {
   username?: string;
+  name?: string;
   email?: string;
+  mobile?: string;
   phone?: string;
   password?: string;
   confirmPassword?: string;
   passwordlessToken?: string;
   type?: string;
+  batch_id?: string;
+  department_id?: string;
+  passing_year_id?: string;
+  id_number?: string;
+  file?: UploadFile[];
+  date_of_birth?: any;
+  gender?: string;
+  [key: string]: any;
 };
+
+type LegacyOption = {
+  id?: string | number;
+  name?: string;
+  short_name?: string;
+  [key: string]: any;
+};
+
+type RegisterFieldConfig = {
+  type?: string;
+  label?: string;
+  name?: string;
+  required?: boolean;
+  values?: Array<{ label?: string; value?: string; selected?: boolean }>;
+  [key: string]: any;
+};
+
+type RegisterPagePayload = {
+  regForm?: Record<string, any>;
+  reg_form?: Record<string, any>;
+  batches?: LegacyOption[];
+  departments?: LegacyOption[];
+  passingYears?: LegacyOption[];
+  passing_years?: LegacyOption[];
+};
+
+function flagEnabled(value: any) {
+  return value === true || Number(value || 0) === 1 || value === '1' || value === 'true';
+}
+
+function asOptions(items?: LegacyOption[], labelKey: 'name' | 'short_name' = 'name') {
+  return (items || []).map((item) => ({
+    label: String(item[labelKey] || item.name || item.id || ''),
+    value: String(item.id ?? ''),
+  }));
+}
+
+function parseCustomFields(raw: any): RegisterFieldConfig[] {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return Array.isArray(parsed) ? parsed.filter((item) => item && typeof item === 'object') : [];
+  } catch {
+    return [];
+  }
+}
+
+function selectedFile(files?: UploadFile[]) {
+  const file = Array.isArray(files) ? files[0] : undefined;
+  return file?.originFileObj as File | undefined;
+}
+
+function fieldValueForSubmit(value: any) {
+  if (!value) {
+    return '';
+  }
+  if (typeof value?.format === 'function') {
+    return value.format('YYYY-MM-DD');
+  }
+  return String(value);
+}
 
 const Lang = () => {
   const langClassName = useEmotionCss(({ token }) => {
@@ -67,6 +157,8 @@ const Register: React.FC = () => {
   const service = new AuthApi();
 
   const [userRegisterState, setUserRegisterState] = useState<RegisterResult>({});
+  const [registerPage, setRegisterPage] = useState<RegisterPagePayload>({});
+  const [registerLoading, setRegisterLoading] = useState(true);
   //account,phone,email
   const [type, setType] = useState<string>('account');
   const { initialState, setInitialState } = useModel('@@initialState');
@@ -104,6 +196,16 @@ const Register: React.FC = () => {
 
   const titile = initialState?.currentTenant?.tenant?.displayName || '';
   const logo = initialState?.currentTenant?.tenant?.logo?.url || '/logo.png';
+  const regForm = registerPage.regForm || registerPage.reg_form || {};
+  const customFields = parseCustomFields(regForm.custom_fields);
+
+  useEffect(() => {
+    setRegisterLoading(true);
+    request<RegisterPagePayload>('/register')
+      .then((data) => setRegisterPage(data || {}))
+      .catch(() => setRegisterPage({}))
+      .finally(() => setRegisterLoading(false));
+  }, []);
 
   const handleSubmit = async (values: RegisterParams) => {
     try {
@@ -113,13 +215,46 @@ const Register: React.FC = () => {
       });
 
       if (type === 'account') {
-        await service.authRegister({
-          body: {
-            username: values.username!,
-            password: values.password!,
-            confirmPassword: values.confirmPassword!,
-            web: true,
-          },
+        const formData = new FormData();
+        formData.append('name', values.name || '');
+        formData.append('email', values.email || '');
+        formData.append('mobile', values.mobile || '');
+        formData.append('password', values.password || '');
+        formData.append('password_confirmation', values.confirmPassword || '');
+        [
+          'batch_id',
+          'department_id',
+          'passing_year_id',
+          'id_number',
+          'date_of_birth',
+          'gender',
+        ].forEach((key) => {
+          const value = fieldValueForSubmit(values[key]);
+          if (value) {
+            formData.append(key, value);
+          }
+        });
+        const file = selectedFile(values.file);
+        if (file) {
+          formData.append('file', file);
+        }
+        const customAnswers = customFields.map((field, index) => {
+          const fieldName = field.name || `field_${index}`;
+          const value = values[`custom_${fieldName}`];
+          const userData = Array.isArray(value)
+            ? value.map((item) => String(item))
+            : fieldValueForSubmit(value)
+            ? [fieldValueForSubmit(value)]
+            : [];
+          return {
+            ...field,
+            userData,
+          };
+        });
+        formData.append('custom_fields', JSON.stringify(customAnswers));
+        await request('/register', {
+          method: 'POST',
+          data: formData,
         });
       } else if (type === 'phone') {
         await service.authLoginPasswordless({
@@ -141,7 +276,7 @@ const Register: React.FC = () => {
 
       message.success(defaultRegisterSuccessMessage);
       await fetchUserInfo();
-      history.push('/');
+      history.push(redirect || '/');
     } catch (error) {
       setUserRegisterState((v) => {
         return {
@@ -202,7 +337,7 @@ const Register: React.FC = () => {
                 key: 'account',
                 label: intl.formatMessage({
                   id: 'pages.register.account.tab',
-                  defaultMessage: 'By username',
+                  defaultMessage: 'Create account',
                 }),
               },
               // {
@@ -224,30 +359,184 @@ const Register: React.FC = () => {
 
           {status === 'error' && <RegisterMessage content={errorMsg ?? ''} />}
           {type === 'account' && (
-            <>
+            <Spin spinning={registerLoading}>
               <ProFormText
-                name="username"
+                name="name"
                 fieldProps={{
                   ref: inputRef,
                   size: 'large',
                   prefix: <UserOutlined />,
                 }}
-                placeholder={intl.formatMessage({
-                  id: 'pages.login.username.placeholder',
-                  defaultMessage: '用户名',
-                })}
+                placeholder="Full Name"
                 rules={[
                   {
                     required: true,
-                    message: (
-                      <FormattedMessage
-                        id="pages.login.username.required"
-                        defaultMessage="请输入用户名!"
-                      />
-                    ),
+                    message: 'Full name is required.',
                   },
                 ]}
               />
+              <ProFormText
+                name="email"
+                fieldProps={{
+                  size: 'large',
+                  prefix: <MailOutlined />,
+                }}
+                placeholder="Email Address"
+                rules={[
+                  { required: true, message: 'Email address is required.' },
+                  { type: 'email', message: 'Email address is invalid.' },
+                ]}
+              />
+              <ProFormText
+                name="mobile"
+                fieldProps={{
+                  size: 'large',
+                  prefix: <MobileOutlined />,
+                }}
+                placeholder="Phone Number"
+                rules={[
+                  { required: true, message: 'Phone number is required.' },
+                  { min: 6, message: 'Phone number is invalid.' },
+                ]}
+              />
+              {flagEnabled(regForm.enable_batch) ? (
+                <ProFormSelect
+                  name="batch_id"
+                  fieldProps={{ size: 'large' }}
+                  options={asOptions(registerPage.batches)}
+                  placeholder="Select Batch"
+                  rules={[{ required: true, message: 'Batch is required.' }]}
+                />
+              ) : null}
+              {flagEnabled(regForm.enable_department) ? (
+                <ProFormSelect
+                  name="department_id"
+                  fieldProps={{ size: 'large' }}
+                  options={asOptions(registerPage.departments, 'short_name')}
+                  placeholder="Select Department"
+                  rules={[{ required: true, message: 'Department is required.' }]}
+                />
+              ) : null}
+              {flagEnabled(regForm.enable_passing_year) ? (
+                <ProFormSelect
+                  name="passing_year_id"
+                  fieldProps={{ size: 'large' }}
+                  options={asOptions(registerPage.passingYears || registerPage.passing_years)}
+                  placeholder="Select Passing Year"
+                  rules={[{ required: true, message: 'Passing year is required.' }]}
+                />
+              ) : null}
+              {flagEnabled(regForm.enable_role_number) ? (
+                <ProFormText
+                  name="id_number"
+                  fieldProps={{
+                    size: 'large',
+                    prefix: <IdcardOutlined />,
+                  }}
+                  placeholder="ID/Roll Number"
+                  rules={[{ required: true, message: 'ID/Roll number is required.' }]}
+                />
+              ) : null}
+              {flagEnabled(regForm.enable_attachment) ? (
+                <ProFormUploadButton
+                  name="file"
+                  max={1}
+                  fieldProps={{
+                    accept: 'application/pdf',
+                    beforeUpload: () => false,
+                    maxCount: 1,
+                  }}
+                  icon={<UploadOutlined />}
+                  title="Choose PDF"
+                  rules={[{ required: true, message: 'Attachment is required.' }]}
+                />
+              ) : null}
+              {flagEnabled(regForm.enable_date_of_birth) ? (
+                <ProFormDatePicker
+                  name="date_of_birth"
+                  fieldProps={{
+                    size: 'large',
+                    suffixIcon: <CalendarOutlined />,
+                  }}
+                  placeholder="Birth Date"
+                  rules={[{ required: true, message: 'Birth date is required.' }]}
+                />
+              ) : null}
+              {flagEnabled(regForm.enable_gender) ? (
+                <ProFormSelect
+                  name="gender"
+                  fieldProps={{ size: 'large' }}
+                  options={[
+                    { label: 'Male', value: 'male' },
+                    { label: 'Female', value: 'female' },
+                    { label: 'Other', value: 'other' },
+                  ]}
+                  placeholder="Gender"
+                  rules={[{ required: true, message: 'Gender is required.' }]}
+                />
+              ) : null}
+              {customFields.map((field, index) => {
+                const fieldName = field.name || `field_${index}`;
+                const name = `custom_${fieldName}`;
+                const label = field.label || fieldName;
+                const rules = field.required
+                  ? [{ required: true, message: `${label} is required.` }]
+                  : [];
+                const options = (field.values || []).map((item) => ({
+                  label: item.label || item.value || '',
+                  value: item.value || item.label || '',
+                }));
+                if (field.type === 'textarea') {
+                  return (
+                    <ProFormTextArea
+                      key={name}
+                      name={name}
+                      placeholder={label}
+                      rules={rules}
+                      fieldProps={{ rows: 3 }}
+                    />
+                  );
+                }
+                if (
+                  field.type === 'select' ||
+                  field.type === 'radio-group' ||
+                  field.type === 'checkbox-group'
+                ) {
+                  return (
+                    <ProFormSelect
+                      key={name}
+                      name={name}
+                      options={options}
+                      placeholder={label}
+                      rules={rules}
+                      fieldProps={{
+                        mode: field.type === 'checkbox-group' ? 'multiple' : undefined,
+                        size: 'large',
+                      }}
+                    />
+                  );
+                }
+                if (field.type === 'date') {
+                  return (
+                    <ProFormDatePicker
+                      key={name}
+                      name={name}
+                      placeholder={label}
+                      rules={rules}
+                      fieldProps={{ size: 'large' }}
+                    />
+                  );
+                }
+                return (
+                  <ProFormText
+                    key={name}
+                    name={name}
+                    placeholder={label}
+                    rules={rules}
+                    fieldProps={{ size: 'large' }}
+                  />
+                );
+              })}
               <ProFormText.Password
                 name="password"
                 fieldProps={{
@@ -307,7 +596,7 @@ const Register: React.FC = () => {
                   }),
                 ]}
               />
-            </>
+            </Spin>
           )}
 
           {type === 'mobile' && (

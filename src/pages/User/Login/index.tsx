@@ -350,6 +350,7 @@ const Login: React.FC = () => {
                 <FormattedMessage id="pages.login.rememberMe" defaultMessage="自动登录" />
               </ProFormCheckbox>
               <a
+                href="/password/reset"
                 style={{
                   float: 'right',
                 }}

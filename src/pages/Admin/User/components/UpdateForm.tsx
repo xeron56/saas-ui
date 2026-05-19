@@ -1,6 +1,6 @@
 import type { ProFormInstance } from '@ant-design/pro-components';
 import { ProFormRadio, ProFormUploadButton } from '@ant-design/pro-components';
-import { ProFormText, DrawerForm, ProFormDatePicker, ProForm } from '@ant-design/pro-components';
+import { ProFormText, DrawerForm, ProFormDatePicker } from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
 import React, { useEffect, useRef, useState } from 'react';
 import type { V1AdminUpdateUser, V1AdminCreateUserRequest } from '@gosaas/api';

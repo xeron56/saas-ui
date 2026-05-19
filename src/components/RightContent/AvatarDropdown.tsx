@@ -1,7 +1,7 @@
 import { LogoutOutlined, SettingOutlined, UserOutlined } from '@ant-design/icons';
 import { history, useModel } from '@umijs/max';
 import { Avatar, Spin } from 'antd';
-import type { ItemType } from 'antd/lib/menu/hooks/useItems';
+import type { MenuProps } from 'antd';
 
 import type { MenuInfo } from 'rc-menu/lib/interface';
 import React, { useCallback } from 'react';
@@ -11,9 +11,22 @@ import { useEmotionCss } from '@ant-design/use-emotion-css';
 import { setAlpha } from '@ant-design/pro-components';
 import { loginOut } from '@/utils/auth';
 
+type ItemType = NonNullable<MenuProps['items']>[number];
+
 export type GlobalHeaderRightProps = {
   menu?: boolean;
 };
+
+function profileRoute(changePassword = false) {
+  const pathname = history.location?.pathname || window.location.pathname;
+  if (pathname.startsWith('/super-admin')) {
+    return changePassword ? '/super-admin/profile/change-password' : '/super-admin/profile';
+  }
+  if (pathname.startsWith('/admin')) {
+    return changePassword ? '/admin/profile/change-password' : '/admin/profile';
+  }
+  return '/settings';
+}
 
 const AvatarLogo = () => {
   const { initialState } = useModel('@@initialState');
@@ -72,7 +85,7 @@ const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({}) => {
         loginOut();
         return;
       }
-      history.push(`/account/${key}`);
+      history.push(profileRoute(key === 'settings'));
     },
     [setInitialState],
   );
@@ -118,12 +131,12 @@ const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({}) => {
       {
         key: 'center',
         icon: <UserOutlined />,
-        label: '个人中心',
+        label: 'Profile',
       },
       {
         key: 'settings',
         icon: <SettingOutlined />,
-        label: '个人设置',
+        label: 'Change password',
       },
       {
         type: 'divider' as const,
