@@ -899,9 +899,9 @@
 
 .public-footer-links {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px 18px;
-  padding: 24px 28px;
+  align-content: start;
 }
 
 .public-footer-links a {
@@ -910,6 +910,94 @@
 
 .public-footer-links a:hover {
   color: #ffffff;
+}
+
+.public-footer-main {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.1fr) minmax(260px, 1.4fr) minmax(220px, 1fr);
+  gap: 28px;
+  padding: 28px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.public-footer-brand-block,
+.public-footer-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.public-footer-logo {
+  display: block;
+  width: fit-content;
+  max-width: 164px;
+  max-height: 56px;
+  object-fit: contain;
+}
+
+.public-footer-brand-name {
+  color: #ffffff;
+  font-size: 18px;
+}
+
+.public-footer-brand-block p {
+  margin: 0;
+  line-height: 1.65;
+}
+
+.public-footer-social {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.public-footer-social a {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+}
+
+.public-footer-social a:hover {
+  color: #f3d35f;
+  border-color: rgba(243, 211, 95, 0.7);
+}
+
+.public-footer-contact h2 {
+  margin: 0 0 2px;
+  color: #ffffff;
+  font-size: 18px;
+}
+
+.public-footer-contact-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-width: 0;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+a.public-footer-contact-item:hover {
+  color: #ffffff;
+}
+
+.public-footer-contact-item .anticon {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  color: #f3d35f;
+}
+
+.public-footer-bottom {
+  padding: 0 28px 24px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 13px;
 }
 
 @media (max-width: 760px) {
@@ -1005,6 +1093,7 @@
 
   .public-newsletter,
   .public-newsletter-form,
+  .public-footer-main,
   .public-footer-links {
     grid-template-columns: 1fr;
   }

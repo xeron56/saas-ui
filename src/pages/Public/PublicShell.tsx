@@ -1,9 +1,20 @@
 import { Link } from '@umijs/max';
 import { Button, Form, Input, message as toast } from 'antd';
-import { LoginOutlined, SendOutlined } from '@ant-design/icons';
-import { useState, type ReactNode } from 'react';
+import {
+  EnvironmentOutlined,
+  FacebookOutlined,
+  InstagramOutlined,
+  LinkedinOutlined,
+  LoginOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  SendOutlined,
+  TwitterOutlined,
+} from '@ant-design/icons';
+import { useEffect, useState, type ReactNode } from 'react';
 import { normalizePayload, textValue } from './content';
-import { postPublicContent } from './services';
+import { fetchPublicContent, postPublicContent } from './services';
+import type { LegacyRecord } from './types';
 import './index.less';
 
 type PublicShellProps = {
@@ -24,9 +35,57 @@ const navItems = [
   { path: '/contact-us', label: 'Contact' },
 ];
 
+const footerLinks = [
+  { path: '/our-notice', label: 'Notice' },
+  { path: '/page/privacy_policy', label: 'Privacy Policy' },
+  { path: '/all-event', label: 'Events' },
+  { path: '/page/cookie_policy', label: 'Cookie Policy' },
+  { path: '/all-stories', label: 'Stories' },
+  { path: '/page/terms_condition', label: 'Terms & Condition' },
+  { path: '/our-news', label: 'News' },
+  { path: '/page/refund_policy', label: 'Refund Policy' },
+];
+
+const socialLinks = [
+  { key: 'facebook_url', label: 'Facebook', icon: <FacebookOutlined /> },
+  { key: 'twitter_url', label: 'Twitter', icon: <TwitterOutlined /> },
+  { key: 'linkedin_url', label: 'LinkedIn', icon: <LinkedinOutlined /> },
+  { key: 'instagram_url', label: 'Instagram', icon: <InstagramOutlined /> },
+];
+
+function externalHref(value: string) {
+  if (!value || /^https?:\/\//i.test(value)) {
+    return value;
+  }
+  return `https://${value}`;
+}
+
 export default function PublicShell({ title, description, children }: PublicShellProps) {
   const [newsletterForm] = Form.useForm<{ email?: string }>();
   const [subscribing, setSubscribing] = useState(false);
+  const [footerPayload, setFooterPayload] = useState<LegacyRecord>({});
+
+  useEffect(() => {
+    let mounted = true;
+    fetchPublicContent('/')
+      .then((payload) => {
+        if (!mounted) {
+          return;
+        }
+        const footer = normalizePayload(payload).footer;
+        if (footer && typeof footer === 'object' && !Array.isArray(footer)) {
+          setFooterPayload(footer);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setFooterPayload({});
+        }
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const subscribeNewsletter = async (values: { email?: string }) => {
     setSubscribing(true);
@@ -48,6 +107,15 @@ export default function PublicShell({ title, description, children }: PublicShel
       setSubscribing(false);
     }
   };
+
+  const footerValue = (key: string) => textValue(footerPayload[key]);
+  const footerLogo = footerValue('app_logo_url');
+  const showFooterLogo = footerLogo && footerLogo !== '/assets/images/no-image.jpg';
+  const contactNumber = footerValue('app_contact_number');
+  const email = footerValue('app_email');
+  const socialItems = socialLinks
+    .map((item) => ({ ...item, href: externalHref(footerValue(item.key)) }))
+    .filter((item) => item.href);
 
   return (
     <main className="public-shell">
@@ -105,16 +173,65 @@ export default function PublicShell({ title, description, children }: PublicShel
               </Button>
             </Form>
           </div>
-          <div className="public-footer-links">
-            <Link to="/our-notice">Notice</Link>
-            <Link to="/page/privacy_policy">Privacy Policy</Link>
-            <Link to="/all-event">Events</Link>
-            <Link to="/page/cookie_policy">Cookie Policy</Link>
-            <Link to="/all-stories">Stories</Link>
-            <Link to="/page/terms_condition">Terms & Condition</Link>
-            <Link to="/our-news">News</Link>
-            <Link to="/page/refund_policy">Refund Policy</Link>
+          <div className="public-footer-main">
+            <div className="public-footer-brand-block">
+              {showFooterLogo ? (
+                <img className="public-footer-logo" src={footerLogo} alt="" />
+              ) : (
+                <strong className="public-footer-brand-name">Alumni Portal</strong>
+              )}
+              {footerValue('footer_left_text') ? <p>{footerValue('footer_left_text')}</p> : null}
+              {socialItems.length ? (
+                <div className="public-footer-social">
+                  {socialItems.map((item) => (
+                    <a
+                      key={item.key}
+                      href={item.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={item.label}
+                    >
+                      {item.icon}
+                    </a>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <div className="public-footer-links">
+              {footerLinks.map((item) => (
+                <Link key={item.path} to={item.path}>
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+            <div className="public-footer-contact">
+              <h2>Contact</h2>
+              {footerValue('app_location') ? (
+                <span className="public-footer-contact-item">
+                  <EnvironmentOutlined />
+                  {footerValue('app_location')}
+                </span>
+              ) : null}
+              {contactNumber ? (
+                <a
+                  className="public-footer-contact-item"
+                  href={`tel:${contactNumber.replace(/\s+/g, '')}`}
+                >
+                  <PhoneOutlined />
+                  {contactNumber}
+                </a>
+              ) : null}
+              {email ? (
+                <a className="public-footer-contact-item" href={`mailto:${email}`}>
+                  <MailOutlined />
+                  {email}
+                </a>
+              ) : null}
+            </div>
           </div>
+          {footerValue('app_copyright') ? (
+            <div className="public-footer-bottom">{footerValue('app_copyright')}</div>
+          ) : null}
         </div>
       </footer>
     </main>
