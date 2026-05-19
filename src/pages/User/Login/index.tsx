@@ -1,5 +1,11 @@
 import Footer from '@/components/Footer';
-import { LockOutlined, MobileOutlined, UserOutlined } from '@ant-design/icons';
+import {
+  FacebookOutlined,
+  GoogleOutlined,
+  LockOutlined,
+  MobileOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
 import {
   LoginForm,
   ProFormCaptcha,
@@ -15,6 +21,8 @@ import { AuthWebApi } from '@gosaas/api';
 import { useMount } from 'ahooks';
 import { useSearchParams } from '@umijs/max';
 import { useEmotionCss } from '@ant-design/use-emotion-css';
+
+declare const BASE_URL: string;
 
 const LoginMessage: React.FC<{
   content: string;
@@ -75,6 +83,7 @@ const Login: React.FC = () => {
   const [currentLoginChallenge, setCurrentLoginChallenge] = useState<string>();
 
   const [loading, setLoading] = useState<boolean>();
+  const legacyAuthBase = typeof BASE_URL === 'string' ? BASE_URL : '';
 
   const containerClassName = useEmotionCss(() => {
     return {
@@ -186,6 +195,20 @@ const Login: React.FC = () => {
                 id="pages.register.tips"
                 defaultMessage="Do not have an account? Go to register"
               />
+            </Button>,
+            <Button
+              href={`${legacyAuthBase}/auth/google`}
+              icon={<GoogleOutlined />}
+              key="google-login"
+            >
+              Google
+            </Button>,
+            <Button
+              href={`${legacyAuthBase}/auth/facebook`}
+              icon={<FacebookOutlined />}
+              key="facebook-login"
+            >
+              Facebook
             </Button>,
           ]}
           onFinish={async (values) => {

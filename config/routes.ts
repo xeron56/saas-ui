@@ -36,6 +36,30 @@
       ],
     },
     {
+      path: '/logout',
+      layout: false,
+      hideInMenu: true,
+      component: './User/Logout',
+    },
+    {
+      path: '/register',
+      layout: false,
+      hideInMenu: true,
+      component: './User/Register',
+    },
+    {
+      path: '/local/:ln',
+      layout: false,
+      hideInMenu: true,
+      component: './Public/LocalSwitch',
+    },
+    {
+      path: '/google2fa/authenticate/verify',
+      layout: false,
+      hideInMenu: true,
+      component: './User/Google2FAVerify',
+    },
+    {
       path: '/password/reset',
       layout: false,
       hideInMenu: true,
@@ -54,7 +78,7 @@
       component: './User/PasswordResetVerify',
     },
     {
-      path: '/password/reset/verify/:email',
+      path: '/password/reset/verify/:token',
       layout: false,
       hideInMenu: true,
       component: './User/PasswordResetVerify',
@@ -66,10 +90,22 @@
       component: './User/PasswordReset',
     },
     {
+      path: '/version-update',
+      layout: false,
+      hideInMenu: true,
+      component: './Admin/VersionUpdate',
+    },
+    {
       path: '/all-alumni',
       layout: false,
       hideInMenu: true,
       component: './Public/ContentList',
+    },
+    {
+      path: '/alumni/list-search-with-filter',
+      layout: false,
+      hideInMenu: true,
+      component: './Public/AlumniDirectory',
     },
     {
       path: '/alumni/profile/:id',
@@ -192,6 +228,12 @@
       component: './Public/StoryJobManage',
     },
     {
+      path: '/job-post/info/:slug',
+      layout: false,
+      hideInMenu: true,
+      component: './Public/StoryJobManage',
+    },
+    {
       path: '/all-stories',
       layout: false,
       hideInMenu: true,
@@ -222,6 +264,12 @@
       component: './Public/StoryJobManage',
     },
     {
+      path: '/stories/info/:slug',
+      layout: false,
+      hideInMenu: true,
+      component: './Public/StoryJobManage',
+    },
+    {
       path: '/page/:slug',
       layout: false,
       hideInMenu: true,
@@ -247,6 +295,12 @@
     },
     {
       path: '/settings',
+      layout: false,
+      hideInMenu: true,
+      component: './Public/AlumniSettings',
+    },
+    {
+      path: '/profile',
       layout: false,
       hideInMenu: true,
       component: './Public/AlumniSettings',
@@ -753,6 +807,11 @@
         },
         {
           path: '/admin/version-delete',
+          hideInMenu: true,
+          component: './Admin/VersionUpdate',
+        },
+        {
+          path: '/admin/script-',
           hideInMenu: true,
           component: './Admin/VersionUpdate',
         },

@@ -132,7 +132,11 @@ export default function AdminVersionUpdate() {
   const [error, setError] = useState('');
   const directActionRef = useRef('');
 
-  const basePrefix = location.pathname.startsWith('/super-admin/') ? '/super-admin' : '/admin';
+  const basePrefix = location.pathname.startsWith('/super-admin/')
+    ? '/super-admin'
+    : location.pathname.startsWith('/admin/')
+    ? '/admin'
+    : '';
   const mode = location.pathname.includes(`${basePrefix}/addon/`) ? 'addon' : 'version';
   const routeCode = textValue(params.id) || routeCodeFromPath(location.pathname);
   const addonCode = textValue(payload?.code) || routeCode;
@@ -151,6 +155,14 @@ export default function AdminVersionUpdate() {
         key: `${location.pathname}:delete`,
         redirectPath: `${basePrefix}/version-update`,
         type: 'delete',
+      };
+    }
+    if (basePrefix === '/admin' && location.pathname === '/admin/script-') {
+      return {
+        actionRoute: '/admin/script-',
+        key: `${location.pathname}:script`,
+        redirectPath: `${basePrefix}/version-update`,
+        type: 'execute',
       };
     }
     if (location.pathname.startsWith(`${basePrefix}/addon/delete/`) && routeCode) {
@@ -231,7 +243,7 @@ export default function AdminVersionUpdate() {
     }
   };
 
-  const executeUpdate = async (redirectPath?: string) => {
+  const executeUpdate = async (redirectPath?: string, actionRoute?: string) => {
     setSubmitting('execute');
     setError('');
     try {
@@ -239,7 +251,7 @@ export default function AdminVersionUpdate() {
         ? await form.validateFields(['email', 'purchase_code'])
         : form.getFieldsValue(['email', 'purchase_code']);
       const executeRoute = actionURL(
-        payload?.executeRoute,
+        actionRoute || payload?.executeRoute,
         mode === 'addon' ? `${basePrefix}/addon/execute` : `${basePrefix}/version-update-execute`,
       );
       const response = await request<LegacyActionResponse>(executeRoute, {
@@ -313,7 +325,7 @@ export default function AdminVersionUpdate() {
     }
     directActionRef.current = directAction.key;
     if (directAction.type === 'execute') {
-      void executeUpdate(directAction.redirectPath);
+      void executeUpdate(directAction.redirectPath, directAction.actionRoute);
     } else {
       void deleteUpload(directAction.redirectPath);
     }

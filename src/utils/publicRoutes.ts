@@ -1,5 +1,6 @@
 const publicRoutePatterns = [
   /^\/$/,
+  /^\/local\/[^/]+\/?$/,
   /^\/all-alumni\/?$/,
   /^\/alumni\/profile\/[^/]+\/?$/,
   /^\/all-event\/?$/,

@@ -37,7 +37,9 @@ export default function PasswordResetVerify() {
   const [error, setError] = useState('');
   const [resending, setResending] = useState(false);
   const initialToken = textValue(params.token);
-  const initialEmail = safeDecode(params.email || params.token || searchParams.get('email'));
+  const initialEmail = safeDecode(
+    params.email || searchParams.get('email') || (initialToken.includes('@') ? initialToken : ''),
+  );
 
   const submit = async (values: VerifyValues) => {
     const token = textValue(values.token);

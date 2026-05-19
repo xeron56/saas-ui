@@ -124,6 +124,101 @@ function selectedFile(files?: UploadFile[]) {
   return files?.[0]?.originFileObj as File | undefined;
 }
 
+function decodeHTMLEntities(value: string) {
+  if (typeof document !== 'undefined') {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = value;
+    return textarea.value;
+  }
+  return value
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function legacyHTMLFieldValues(html: string, name: string) {
+  if (typeof DOMParser !== 'undefined') {
+    const documentValue = new DOMParser().parseFromString(html, 'text/html');
+    const field = Array.from(documentValue.querySelectorAll('input, textarea, select')).find(
+      (element) => element.getAttribute('name') === name,
+    );
+    if (!field) {
+      return [];
+    }
+    if (field instanceof HTMLSelectElement) {
+      return Array.from(field.selectedOptions).map((option) => option.value);
+    }
+    if (field instanceof HTMLTextAreaElement || field instanceof HTMLInputElement) {
+      return [field.value || field.textContent || ''];
+    }
+    return [field.textContent || ''];
+  }
+
+  const escapedName = escapeRegExp(name);
+  const select = html.match(
+    new RegExp(`<select[^>]*name=["']${escapedName}["'][\\s\\S]*?<\\/select>`, 'i'),
+  )?.[0];
+  if (select) {
+    return Array.from(
+      select.matchAll(/<option[^>]*value=["']?([^"'\s>]+)["']?[^>]*selected[^>]*>/gi),
+    ).map((match) => decodeHTMLEntities(match[1]));
+  }
+
+  const textarea = html.match(
+    new RegExp(`<textarea[^>]*name=["']${escapedName}["'][^>]*>([\\s\\S]*?)<\\/textarea>`, 'i'),
+  );
+  if (textarea) {
+    return [decodeHTMLEntities(textarea[1])];
+  }
+
+  const input = html.match(new RegExp(`<input[^>]*name=["']${escapedName}["'][^>]*>`, 'i'))?.[0];
+  const value = input?.match(/\bvalue=["']([^"']*)["']/i)?.[1];
+  return value === undefined ? [] : [decodeHTMLEntities(value)];
+}
+
+function legacyHTMLFieldValue(html: string, name: string) {
+  return legacyHTMLFieldValues(html, name)[0] || '';
+}
+
+function storyFromInfoHTML(html: string, fallbackSlug: string): LegacyRecord {
+  return {
+    slug: legacyHTMLFieldValue(html, 'slug') || fallbackSlug,
+    title: legacyHTMLFieldValue(html, 'title'),
+    body: legacyHTMLFieldValue(html, 'body'),
+    status: legacyHTMLFieldValue(html, 'status'),
+    status_id: legacyHTMLFieldValue(html, 'status'),
+    thumbnail_url: extractImageSrc(html),
+  };
+}
+
+function jobFromInfoHTML(html: string, fallbackSlug: string): LegacyRecord {
+  return {
+    slug: legacyHTMLFieldValue(html, 'slug') || fallbackSlug,
+    title: legacyHTMLFieldValue(html, 'title'),
+    compensation_n_benefits: legacyHTMLFieldValue(html, 'compensation_n_benefits'),
+    salary: legacyHTMLFieldValue(html, 'salary'),
+    location: legacyHTMLFieldValue(html, 'location'),
+    post_link: legacyHTMLFieldValue(html, 'post_link'),
+    application_deadline: legacyHTMLFieldValue(html, 'application_deadline'),
+    application_deadline_raw: legacyHTMLFieldValue(html, 'application_deadline'),
+    job_context: legacyHTMLFieldValue(html, 'job_context'),
+    job_responsibility: legacyHTMLFieldValue(html, 'job_responsibility'),
+    educational_requirements: legacyHTMLFieldValue(html, 'educational_requirements'),
+    additional_requirements: legacyHTMLFieldValue(html, 'additional_requirements'),
+    employee_status: legacyHTMLFieldValue(html, 'employee_status'),
+    employee_status_id: legacyHTMLFieldValue(html, 'employee_status'),
+    status: legacyHTMLFieldValue(html, 'status'),
+    status_id: legacyHTMLFieldValue(html, 'status'),
+    company_logo_url: extractImageSrc(html),
+  };
+}
+
 function isAllowedImage(file: File) {
   const extension = file.name.split('.').pop()?.toLowerCase();
   return extension === 'jpg' || extension === 'jpeg' || extension === 'png';
@@ -261,10 +356,14 @@ export default function StoryJobManage() {
   const storyCreate = pathname === '/stories/create';
   const jobCreate = pathname === '/job-post/create';
   const jobDetail = pathname.startsWith('/job-post/details/');
+  const jobInfo = pathname.startsWith('/job-post/info/');
+  const storyInfo = pathname.startsWith('/stories/info/');
+  const directInfo = jobInfo || storyInfo;
   const pendingMode = pathname.includes('/pending');
   const myJobMode = pathname === '/job-post/my-job-post';
   const storyListEndpoint = useMemo(() => storyEndpoint(pathname), [pathname]);
   const jobListEndpoint = useMemo(() => jobEndpoint(pathname), [pathname]);
+  const returnPath = isStory ? '/stories/list' : '/job-post/my-job-post';
   const [rows, setRows] = useState<LegacyRecord[]>([]);
   const [current, setCurrent] = useState<LegacyRecord>({});
   const [loading, setLoading] = useState(true);
@@ -305,6 +404,42 @@ export default function StoryJobManage() {
     }
   };
 
+  const loadInfoEditor = async () => {
+    const slug = textValue(params.slug);
+    const endpoint = isStory
+      ? `/stories/info/${encodeURIComponent(slug)}`
+      : `/job-post/info/${encodeURIComponent(slug)}`;
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetchPublicContent<any>(endpoint);
+      const body = typeof response === 'string' ? {} : normalizePayload(response);
+      const item = isStory ? body.story || body.item : body.jobPostData || body.item;
+      const html = typeof response === 'string' ? response : textValue(body.html);
+      const record =
+        item && typeof item === 'object'
+          ? (item as LegacyRecord)
+          : html
+          ? isStory
+            ? storyFromInfoHTML(html, slug)
+            : jobFromInfoHTML(html, slug)
+          : {};
+      setCurrent(record);
+      if (isStory) {
+        storyForm.setFieldsValue(storyFormValues(record));
+      } else {
+        jobForm.setFieldsValue(jobFormValues(record));
+      }
+      setEditing(Object.keys(record).length > 0);
+    } catch (err: any) {
+      setError(err?.message || 'Unable to load record.');
+      setCurrent({});
+      setEditing(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (storyCreate) {
       storyForm.resetFields();
@@ -322,9 +457,13 @@ export default function StoryJobManage() {
       loadJobDetail();
       return;
     }
+    if (directInfo) {
+      loadInfoEditor();
+      return;
+    }
     loadRows();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, storyCreate, jobCreate, jobDetail, params.slug]);
+  }, [pathname, storyCreate, jobCreate, jobDetail, directInfo, params.slug]);
 
   const openEdit = (record: LegacyRecord) => {
     setCurrent(record);
@@ -363,6 +502,8 @@ export default function StoryJobManage() {
       closeEdit();
       if (storyCreate) {
         history.push('/stories/list');
+      } else if (directInfo) {
+        history.push(returnPath);
       } else {
         await loadRows();
       }
@@ -396,6 +537,8 @@ export default function StoryJobManage() {
       closeEdit();
       if (jobCreate) {
         history.push('/job-post/my-job-post');
+      } else if (directInfo) {
+        history.push(returnPath);
       } else {
         await loadRows();
       }
@@ -646,7 +789,9 @@ export default function StoryJobManage() {
       {editing ? (
         <div style={{ marginBottom: 24 }}>
           <Space style={{ marginBottom: 16 }}>
-            <Button onClick={closeEdit}>Back</Button>
+            <Button onClick={() => (directInfo ? history.push(returnPath) : closeEdit())}>
+              Back
+            </Button>
           </Space>
           {isStory ? storyFormNode : jobFormNode}
         </div>

@@ -12,7 +12,13 @@ import {
   Tag,
   message as toast,
 } from 'antd';
-import { CheckCircleOutlined, PlusOutlined, SaveOutlined, SendOutlined } from '@ant-design/icons';
+import {
+  CheckCircleOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SaveOutlined,
+  SendOutlined,
+} from '@ant-design/icons';
 import { useEffect, useMemo, useState } from 'react';
 import { normalizePayload, textValue } from '../content';
 import PublicShell from '../PublicShell';
@@ -171,6 +177,7 @@ export default function AlumniSettings() {
   const [saving, setSaving] = useState(false);
   const [adding, setAdding] = useState(false);
   const [sendingPhone, setSendingPhone] = useState(false);
+  const [resendingPhone, setResendingPhone] = useState(false);
   const [verifyingPhone, setVerifyingPhone] = useState(false);
   const [savingSecurity, setSavingSecurity] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
@@ -281,6 +288,23 @@ export default function AlumniSettings() {
       setError(err?.message || 'Phone verification code could not be sent.');
     } finally {
       setSendingPhone(false);
+    }
+  };
+
+  const resendPhoneCode = async () => {
+    setResendingPhone(true);
+    setError('');
+    try {
+      const response = normalizePayload(await fetchPublicContent('/phone-verification-sms-resend'));
+      if (response.status === false) {
+        setError(textValue(response.message) || 'Phone verification code could not be resent.');
+        return;
+      }
+      toast.success(textValue(response.message) || 'Phone verification code resent.');
+    } catch (err: any) {
+      setError(err?.message || 'Phone verification code could not be resent.');
+    } finally {
+      setResendingPhone(false);
     }
   };
 
@@ -545,6 +569,14 @@ export default function AlumniSettings() {
                     disabled={!phone || phoneVerified}
                   >
                     Send Code
+                  </Button>
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={resendPhoneCode}
+                    loading={resendingPhone}
+                    disabled={!phone || phoneVerified}
+                  >
+                    Resend Code
                   </Button>
                   <Button
                     type="primary"

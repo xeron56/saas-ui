@@ -850,6 +850,68 @@
   color: #526070;
 }
 
+.public-footer {
+  margin-top: 32px;
+  padding: 0 32px 36px;
+}
+
+.public-footer-inner {
+  display: grid;
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  overflow: hidden;
+  background: #172033;
+  border-radius: 8px;
+}
+
+.public-newsletter {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1fr);
+  gap: 24px;
+  align-items: center;
+  padding: 28px;
+  background: #f3d35f;
+}
+
+.public-newsletter h2 {
+  margin: 0;
+  color: #172033;
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+.public-newsletter p {
+  margin: 8px 0 0;
+  color: #465268;
+  line-height: 1.55;
+}
+
+.public-newsletter-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.public-newsletter-form .ant-form-item {
+  margin-bottom: 0;
+}
+
+.public-footer-links {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px 18px;
+  padding: 24px 28px;
+}
+
+.public-footer-links a {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.public-footer-links a:hover {
+  color: #ffffff;
+}
+
 @media (max-width: 760px) {
   .public-header {
     align-items: flex-start;
@@ -935,5 +997,15 @@
   .public-profile-photo {
     width: 104px;
     height: 104px;
+  }
+
+  .public-footer {
+    padding: 0 20px 28px;
+  }
+
+  .public-newsletter,
+  .public-newsletter-form,
+  .public-footer-links {
+    grid-template-columns: 1fr;
   }
 }
