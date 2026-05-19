@@ -306,6 +306,12 @@
       component: './Public/EventTicketDetail',
     },
     {
+      path: '/ticket-verify/:ticket',
+      layout: false,
+      hideInMenu: true,
+      component: './Public/TicketVerify',
+    },
+    {
       path: '/email/verify/:token',
       layout: false,
       hideInMenu: true,
