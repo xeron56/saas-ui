@@ -1,15 +1,43 @@
-import { ModalForm, ProFormText, ProFormUploadButton } from '@ant-design/pro-components';
 import {
-  TenantServiceApi,
-  V1Tenant,
-  V1UserCreateTenantReply,
-  V1UserCreateTenantRequest,
-} from '@gosaas/api';
-import { useIntl } from '@umijs/max';
+  ModalForm,
+  ProFormDigit,
+  ProFormSelect,
+  ProFormText,
+  ProFormTextArea,
+  ProFormUploadButton,
+} from '@ant-design/pro-components';
+import type { V1Tenant } from '@gosaas/api';
+import { request as umiRequest, useIntl } from '@umijs/max';
 import { uploadApi } from '@/utils/upload';
 import { uploadConvertValue, uploadTransformSingle } from '@gosaas/core';
 
-type FormValueType = V1UserCreateTenantRequest;
+type FormValueType = {
+  logo?: string;
+  companyName?: string;
+  business_category_id?: string;
+  phoneNumber?: string;
+  address?: string;
+  shopOpeningBalance?: number;
+};
+
+type BusinessCategoryOption = {
+  id: string;
+  name?: string;
+  display_name?: string;
+  displayName?: string;
+};
+
+type BusinessCategoryListReply = {
+  data?: BusinessCategoryOption[];
+};
+
+type BusinessSetupReply = {
+  tenant?: V1Tenant;
+  data?: {
+    tenant?: V1Tenant;
+  };
+};
+
 export type CreateTenantModalPros = {
   open: boolean;
   onCancel: (flag?: boolean, formVals?: FormValueType) => void;
@@ -17,21 +45,25 @@ export type CreateTenantModalPros = {
 };
 
 export default (props: CreateTenantModalPros) => {
-  const service = new TenantServiceApi();
   const intl = useIntl();
 
   return (
     <ModalForm<FormValueType>
       open={props.open}
       title={intl.formatMessage({
-        id: 'saas.tenant.create',
-        defaultMessage: 'Create New',
+        id: 'saas.businessSetup.create',
+        defaultMessage: 'Create Business',
       })}
       onFinish={async (formData) => {
-        const resp: { data: V1UserCreateTenantReply } = await service.tenantServiceUserCreateTenant(
-          { body: formData },
-        );
-        props.onFinish(resp.data!.tenant!);
+        const resp = await umiRequest<BusinessSetupReply>('/v1/business', {
+          method: 'POST',
+          data: formData,
+        });
+        const tenant = resp.data?.tenant ?? resp.tenant;
+        if (tenant) {
+          props.onFinish(tenant);
+        }
+        return true;
       }}
       modalProps={{
         onCancel: () => {
@@ -71,23 +103,74 @@ export default (props: CreateTenantModalPros) => {
       />
 
       <ProFormText
-        name="name"
+        name="companyName"
         label={intl.formatMessage({
-          id: 'saas.tenant.name',
-          defaultMessage: 'Tenant Name',
+          id: 'saas.businessSetup.companyName',
+          defaultMessage: 'Company Name',
         })}
+        rules={[
+          {
+            required: true,
+          },
+          {
+            max: 250,
+          },
+        ]}
+      />
+
+      <ProFormSelect
+        name="business_category_id"
+        label={intl.formatMessage({
+          id: 'saas.businessSetup.category',
+          defaultMessage: 'Business Category',
+        })}
+        showSearch
+        request={async () => {
+          const resp = await umiRequest<BusinessCategoryListReply>('/v1/business-categories');
+          return (resp.data ?? []).map((item) => ({
+            label: item.display_name ?? item.displayName ?? item.name ?? item.id,
+            value: item.id,
+          }));
+        }}
         rules={[
           {
             required: true,
           },
         ]}
       />
+
       <ProFormText
-        name="displayName"
+        name="phoneNumber"
         label={intl.formatMessage({
-          id: 'saas.tenant.displayName',
-          defaultMessage: 'Tenant DisplayName',
+          id: 'saas.businessSetup.phoneNumber',
+          defaultMessage: 'Phone Number',
         })}
+        rules={[
+          {
+            required: true,
+          },
+          {
+            max: 20,
+          },
+        ]}
+      />
+
+      <ProFormTextArea
+        name="address"
+        label={intl.formatMessage({
+          id: 'saas.businessSetup.address',
+          defaultMessage: 'Address',
+        })}
+        fieldProps={{ maxLength: 250, showCount: true }}
+      />
+
+      <ProFormDigit
+        name="shopOpeningBalance"
+        label={intl.formatMessage({
+          id: 'saas.businessSetup.shopOpeningBalance',
+          defaultMessage: 'Opening Balance',
+        })}
+        fieldProps={{ precision: 2 }}
       />
     </ModalForm>
   );

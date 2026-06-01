@@ -1,5 +1,4 @@
 import React from 'react';
-import type { MenuDataItem } from '@ant-design/pro-layout';
 import * as allIcons from '@ant-design/icons';
 import type { V1Menu, V1PermissionRequirement } from '@gosaas/api';
 import Iframe from '@/components/Iframe';
@@ -7,9 +6,20 @@ import MicroApp from '@/components/MicroApp';
 import { MasterOptions } from '@@/plugin-qiankun-master/types';
 import { getMasterOptions } from '@@/plugin-qiankun-master/masterOptions';
 import { patchMicroAppRoute } from '@@/plugin-qiankun-master/common';
-import { getMicroAppRouteComponent } from '@@/plugin-qiankun-master/getMicroAppRouteComponent';
 
 const isDev = process.env.NODE_ENV === 'development';
+
+type MenuDataItem = {
+  key?: string;
+  path?: string;
+  name?: string;
+  locale?: string | false;
+  icon?: React.ReactNode;
+  hideInMenu?: boolean;
+  microApp?: string;
+  children?: MenuDataItem[];
+  [key: string]: any;
+};
 
 export declare type RouteData = {
   type: 'iframe' | 'microApp';
@@ -41,7 +51,7 @@ export function transformMenu(allMenu: V1Menu[]) {
           name: p.title,
           path: p.path,
           //component: p.component,
-          requirment: p.requirement,
+          requirement: p.requirement,
           key: p.id,
           hideInMenu: p.hideInMenu,
         };
@@ -74,11 +84,9 @@ export function transformMenu(allMenu: V1Menu[]) {
             item.microApp = p.microAppName;
             //see @@/plugin-qiankun-master/masterRuntimePlugin.tsx#L57
             patchMicroAppRoute(
-              item,
-              getMicroAppRouteComponent as any,
+              item as any,
               {
                 base,
-                routePath: item.path,
                 masterHistoryType,
                 routeBindingAlias,
               } as any,

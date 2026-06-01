@@ -20,7 +20,6 @@ api/plan-service-api.ts
 api/product-category-service-api.ts
 api/product-service-api.ts
 api/role-service-api.ts
-api/stripe-payment-gateway-service-api.ts
 api/subscription-service-api.ts
 api/tenant-service-api.ts
 api/user-admin-service-api.ts
@@ -70,10 +69,6 @@ models/role-service-update-role-permission-request.ts
 models/role-service-update-role-request-role.ts
 models/role-service-update-role-request.ts
 models/search-user-response-search-user.ts
-models/stripe-ephemeral-key.ts
-models/stripe-invoice.ts
-models/stripe-payment-intent.ts
-models/stripe-subscription.ts
 models/subscription-service-update-my-subscription-request.ts
 models/subscription-service-update-subscription-request-subscription.ts
 models/subscription-service-update-subscription-request.ts
@@ -126,7 +121,6 @@ models/v1-delete-product-category-reply.ts
 models/v1-delete-product-reply.ts
 models/v1-delete-tenant-reply.ts
 models/v1-effect.ts
-models/v1-find-or-create-stripe-customer-reply.ts
 models/v1-forget-password-reply.ts
 models/v1-forget-password-request.ts
 models/v1-forget-password-token-reply.ts
@@ -145,7 +139,6 @@ models/v1-get-payment-method-reply.ts
 models/v1-get-profile-response.ts
 models/v1-get-role-permission-response.ts
 models/v1-get-settings-response.ts
-models/v1-get-stripe-config-reply.ts
 models/v1-get-user-permission-reply.ts
 models/v1-get-user-role-reply.ts
 models/v1-grant-consent-request.ts
@@ -199,7 +192,6 @@ models/v1-order-filter.ts
 models/v1-order-item.ts
 models/v1-order-payment-provider-info.ts
 models/v1-order-payment-provider.ts
-models/v1-order-payment-stripe-info.ts
 models/v1-order-product.ts
 models/v1-order.ts
 models/v1-passwordless-token-auth-reply.ts
@@ -242,7 +234,6 @@ models/v1-subscription-filter.ts
 models/v1-subscription-item-params.ts
 models/v1-subscription-item.ts
 models/v1-subscription-provider-info.ts
-models/v1-subscription-stripe-info.ts
 models/v1-tenant-connection-string.ts
 models/v1-tenant-feature.ts
 models/v1-tenant-filter.ts

@@ -9,6 +9,7 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
     "strictFunctionTypes": false,
     "jsx": "preserve",
     "allowJs": true,

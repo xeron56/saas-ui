@@ -1,5 +1,9 @@
 import { PlusOutlined } from '@ant-design/icons';
-import type { ActionType, ProColumnType } from '@ant-design/pro-components';
+import type {
+  ActionType,
+  ProColumnType,
+  ProDescriptionsItemProps,
+} from '@ant-design/pro-components';
 import {
   PageContainer,
   ProDescriptions,
@@ -7,21 +11,18 @@ import {
   TableDropdown,
 } from '@ant-design/pro-components';
 import { FormattedMessage } from '@umijs/max';
-import { Button, Drawer, message } from 'antd';
+import { Button, Drawer, message, Tag } from 'antd';
 import React, { useRef, useState } from 'react';
 import UpdateForm from './components/UpdateForm';
-import { requestTransform } from '@gosaas/core';
-import type {
-  V1CreatePlanRequest,
-  PlanServiceUpdatePlanRequest,
-  V1Plan,
-  V1PlanFilter,
-} from '@gosaas/api';
-import { PlanServiceApi } from '@gosaas/api';
-
 import { useIntl } from '@umijs/max';
-
-const service = new PlanServiceApi();
+import {
+  createAdminPlan,
+  deleteAdminPlan,
+  getAdminPlan,
+  listAdminPlans,
+  updateAdminPlan,
+} from './service';
+import type { LegacyPlan, LegacyPlanFormValues } from './types';
 
 const TableList: React.FC = () => {
   const [updateModalVisible, handleUpdateModalVisible] = useState<boolean>(false);
@@ -29,15 +30,15 @@ const TableList: React.FC = () => {
   const [showDetail, setShowDetail] = useState<boolean>(false);
 
   const actionRef = useRef<ActionType>();
-  const [currentRow, setCurrentRow] = useState<V1Plan | undefined | null>(undefined);
+  const [currentRow, setCurrentRow] = useState<LegacyPlan | undefined | null>(undefined);
 
   const intl = useIntl();
-  const handleAdd = async (fields: V1CreatePlanRequest) => {
+  const handleAdd = async (fields: LegacyPlanFormValues) => {
     const hide = message.loading(
       intl.formatMessage({ id: 'common.creating', defaultMessage: 'Creating...' }),
     );
     try {
-      await service.planServiceCreatePlan({ body: fields });
+      await createAdminPlan(fields);
       hide();
       message.success(
         intl.formatMessage({ id: 'common.created', defaultMessage: 'Created Successfully' }),
@@ -49,12 +50,12 @@ const TableList: React.FC = () => {
     }
   };
 
-  const handleUpdate = async (fields: PlanServiceUpdatePlanRequest) => {
+  const handleUpdate = async (fields: LegacyPlanFormValues) => {
     const hide = message.loading(
       intl.formatMessage({ id: 'common.updating', defaultMessage: 'Updating...' }),
     );
     try {
-      await service.planServiceUpdatePlan2({ body: fields, planKey: currentRow!.key! });
+      await updateAdminPlan(currentRow!.key!, fields);
       hide();
       message.success(
         intl.formatMessage({ id: 'common.updated', defaultMessage: 'Update Successfully' }),
@@ -66,12 +67,12 @@ const TableList: React.FC = () => {
     }
   };
 
-  const handleRemove = async (selectedRow: V1Plan) => {
+  const handleRemove = async (selectedRow: LegacyPlan) => {
     const hide = message.loading(
       intl.formatMessage({ id: 'common.deleting', defaultMessage: 'Deleting...' }),
     );
     try {
-      await service.planServiceDeletePlan({ key: selectedRow.key! });
+      await deleteAdminPlan(selectedRow.key!);
       message.success(
         intl.formatMessage({ id: 'common.deleted', defaultMessage: 'Delete Successfully' }),
       );
@@ -83,7 +84,7 @@ const TableList: React.FC = () => {
     }
   };
 
-  const columns: ProColumnType<V1Plan>[] = [
+  const columns: ProColumnType<LegacyPlan>[] = [
     {
       title: <FormattedMessage id="saas.plan.key" defaultMessage="Plan Key" />,
       dataIndex: 'key',
@@ -102,23 +103,62 @@ const TableList: React.FC = () => {
       },
     },
     {
-      title: <FormattedMessage id="saas.plan.displayName" defaultMessage="Plan Display Name" />,
-      dataIndex: 'displayName',
+      title: (
+        <FormattedMessage id="saas.plan.subscriptionName" defaultMessage="Subscription name" />
+      ),
+      dataIndex: 'subscriptionName',
       valueType: 'text',
     },
     {
+      title: <FormattedMessage id="saas.plan.duration" defaultMessage="Duration" />,
+      dataIndex: 'duration',
+      valueType: 'digit',
+      render: (_, record) => `${record.duration || 0} days`,
+    },
+    {
+      title: <FormattedMessage id="saas.plan.subscriptionPrice" defaultMessage="Price" />,
+      dataIndex: 'subscriptionPrice',
+      valueType: 'money',
+    },
+    {
+      title: <FormattedMessage id="saas.plan.offerPrice" defaultMessage="Offer price" />,
+      dataIndex: 'offerPrice',
+      valueType: 'money',
+      render: (_, record) =>
+        record.offerPrice === null || record.offerPrice === undefined ? '-' : record.offerPrice,
+    },
+    {
+      title: <FormattedMessage id="saas.plan.affiliateCommission" defaultMessage="Referral %" />,
+      dataIndex: 'affiliate_commission',
+      valueType: 'digit',
+      search: false,
+      render: (_, record) =>
+        `${record.affiliate_commission ?? record.affiliate_commission_rate ?? 0}%`,
+    },
+    {
       title: <FormattedMessage id="saas.plan.active" defaultMessage="Active" />,
-      dataIndex: 'active',
-      valueType: 'switch',
+      dataIndex: 'status',
+      render: (_, record) =>
+        record.status || record.active ? (
+          <Tag color="green">Active</Tag>
+        ) : (
+          <Tag color="default">Inactive</Tag>
+        ),
+    },
+    {
+      title: <FormattedMessage id="saas.plan.allowMultibranch" defaultMessage="Multi-branch" />,
+      dataIndex: 'allow_multibranch',
+      render: (_, record) =>
+        record.allow_multibranch ? <Tag color="blue">Allowed</Tag> : <Tag>Single</Tag>,
     },
     {
       title: <FormattedMessage id="common.createdAt" defaultMessage="CreatedAt" />,
-      dataIndex: 'createdAt',
+      dataIndex: 'created_at',
       valueType: 'dateTime',
     },
     {
       title: <FormattedMessage id="common.updatedAt" defaultMessage="UpdatedAt" />,
-      dataIndex: 'updatedAt',
+      dataIndex: 'updated_at',
       valueType: 'dateTime',
     },
     {
@@ -157,17 +197,12 @@ const TableList: React.FC = () => {
     },
   ];
 
-  const getData = requestTransform<V1Plan, V1PlanFilter>(async (req) => {
-    const resp = await service.planServiceListPlan2({ body: req });
-    return resp.data;
-  });
-
   return (
     <PageContainer>
-      <ProTable<V1Plan>
+      <ProTable<LegacyPlan>
         actionRef={actionRef}
-        rowKey="id"
-        search={false}
+        rowKey="key"
+        search={{ labelWidth: 'auto' }}
         pagination={{
           defaultPageSize: 10,
         }}
@@ -184,7 +219,18 @@ const TableList: React.FC = () => {
           </Button>,
         ]}
         type="table"
-        request={getData}
+        request={async (params) => {
+          const resp = await listAdminPlans({
+            page: params.current,
+            per_page: params.pageSize,
+            search: params.keyword || params.subscriptionName || params.key,
+          });
+          return {
+            data: resp.data || [],
+            total: resp.meta?.total || 0,
+            success: true,
+          };
+        }}
         columns={columns}
       />
       <Drawer
@@ -198,11 +244,11 @@ const TableList: React.FC = () => {
         destroyOnClose
       >
         {currentRow?.key && (
-          <ProDescriptions<V1Plan>
+          <ProDescriptions<LegacyPlan>
             column={1}
             title={currentRow?.key}
             request={async () => {
-              const resp = await service.planServiceGetPlan({ key: currentRow.key! });
+              const resp = await getAdminPlan(currentRow.key!);
               return {
                 data: resp.data,
               };
@@ -210,7 +256,7 @@ const TableList: React.FC = () => {
             params={{
               id: currentRow?.key,
             }}
-            columns={columns}
+            columns={columns as ProDescriptionsItemProps<LegacyPlan>[]}
           />
         )}
       </Drawer>
@@ -218,7 +264,7 @@ const TableList: React.FC = () => {
         onSubmit={async (value) => {
           let success = false;
           if (currentRow) {
-            success = await handleUpdate({ plan: value });
+            success = await handleUpdate(value);
           } else {
             success = await handleAdd(value);
           }

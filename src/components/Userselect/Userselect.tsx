@@ -1,7 +1,7 @@
 import React from 'react';
 import { useState, useRef, useEffect } from 'react';
-import { Radio, Card, Avatar, AutoComplete, Form } from 'antd';
-import type { UserServiceApiUserServiceSearchUserRequest } from '@gosaas/api';
+import { Radio, Card, Avatar, AutoComplete } from 'antd';
+import type { UserServiceApiUserServicePublicSearchUserRequest } from '@gosaas/api';
 import { UserServiceApi } from '@gosaas/api';
 import { useIntl } from '@umijs/max';
 import { DeleteOutlined, UserOutlined } from '@ant-design/icons';
@@ -65,7 +65,7 @@ const Userselect: React.FC<UserselectProps> = (props: UserselectProps) => {
     );
   };
 
-  const search = async (body: UserServiceApiUserServiceSearchUserRequest) => {
+  const search = async (body: UserServiceApiUserServicePublicSearchUserRequest) => {
     try {
       const resp = await service.userServicePublicSearchUser(body, {
         showType: ErrorShowType.SILENT,

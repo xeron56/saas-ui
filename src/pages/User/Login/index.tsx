@@ -353,6 +353,7 @@ const Login: React.FC = () => {
                 style={{
                   float: 'right',
                 }}
+                onClick={() => history.push('/user/forgot-password')}
               >
                 <FormattedMessage id="pages.login.forgotPassword" defaultMessage="忘记密码" />
               </a>

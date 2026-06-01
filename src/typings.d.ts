@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 declare module 'slash2';
 declare module '*.css';
 declare module '*.less';
@@ -22,9 +20,3 @@ declare module 'bizcharts-plugin-slider';
 declare const REACT_APP_ENV: 'test' | 'dev' | 'pre' | false;
 
 declare const BASE_URL: string;
-
-declare module 'axios' {
-  export interface AxiosRequestConfig {
-    showType: number;
-  }
-}

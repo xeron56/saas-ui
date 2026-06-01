@@ -12,22 +12,10 @@
  * Do not edit the class manually.
  */
 
-
-// May contain unused imports in some cases
-// @ts-ignore
-import { V1OrderPaymentStripeInfo } from './v1-order-payment-stripe-info';
-
 /**
  * 
  * @export
  * @interface V1OrderPaymentProviderInfo
  */
 export interface V1OrderPaymentProviderInfo {
-    /**
-     * 
-     * @type {V1OrderPaymentStripeInfo}
-     * @memberof V1OrderPaymentProviderInfo
-     */
-    'stripe'?: V1OrderPaymentStripeInfo;
 }
-

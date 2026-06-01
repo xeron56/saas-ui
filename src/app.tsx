@@ -32,9 +32,8 @@ import pRetry from 'p-retry';
 import type { RouteObject } from 'react-router-dom';
 import { accessTree } from '@/utils/tree';
 import Realtime from './components/Realtime';
-import StripeProvider from './components/StripeProvider';
 import React from 'react';
-import { loginOut } from '@/utils/auth';
+import { isPublicPath, loginOut } from '@/utils/auth';
 import enUS0 from 'antd/es/locale/en_US';
 import zhCN0 from 'antd/es/locale/zh_CN';
 // const isDev = process.env.NODE_ENV === 'development';
@@ -72,34 +71,39 @@ export async function getInitialState(): Promise<{
   changeTenant?: (name: string) => Promise<void>;
 }> {
   let currentTenant: UserTenantInfo | undefined = undefined;
+  const publicPath = typeof window !== 'undefined' && isPublicPath(window.location.pathname);
 
-  await pRetry(
-    async () => {
-      const currentReps = await new TenantServiceApi().tenantServiceGetCurrentTenant();
-      currentTenant = currentReps.data as any as UserTenantInfo;
-    },
-    { forever: true, randomize: true, maxTimeout: 5000 },
-  );
+  if (!publicPath) {
+    await pRetry(
+      async () => {
+        const currentReps = await new TenantServiceApi().tenantServiceGetCurrentTenant();
+        currentTenant = currentReps.data as any as UserTenantInfo;
+      },
+      { forever: true, randomize: true, maxTimeout: 5000 },
+    );
+  }
 
-  try {
-    const locales = await new LocaleServiceApi().localeServiceListMessages();
-    ((locales.data?.items as V1LocaleLanguage[] | undefined) ?? []).forEach((p) => {
-      const msg: Record<string, string> = {};
-      (p.msg ?? []).forEach((m) => {
-        msg[m.id!] = m.other!;
+  if (!publicPath) {
+    try {
+      const locales = await new LocaleServiceApi().localeServiceListMessages();
+      ((locales.data?.items as V1LocaleLanguage[] | undefined) ?? []).forEach((p) => {
+        const msg: Record<string, string> = {};
+        (p.msg ?? []).forEach((m) => {
+          msg[m.id!] = m.other!;
+        });
+        let name = p.name!;
+        if (name.startsWith('zh')) {
+          name = 'zh-CN';
+          addLocale(name, msg, { momentLocale: name, antd: zhCN0 as any });
+        } else if (name.startsWith('en')) {
+          name = 'en-US';
+          addLocale(name, msg, { momentLocale: name, antd: enUS0 as any });
+        } else {
+          addLocale(name, msg, { momentLocale: name, antd: enUS0 as any });
+        }
       });
-      let name = p.name!;
-      if (name.startsWith('zh')) {
-        name = 'zh-CN';
-        addLocale(name, msg, { momentLocale: name, antd: zhCN0 as any });
-      } else if (name.startsWith('en')) {
-        name = 'en-US';
-        addLocale(name, msg, { momentLocale: name, antd: enUS0 as any });
-      } else {
-        addLocale(name, msg, { momentLocale: name, antd: enUS0 as any });
-      }
-    });
-  } catch (e) {}
+    } catch (e) {}
+  }
 
   const fetchUserInfo = async () => {
     try {
@@ -111,7 +115,7 @@ export async function getInitialState(): Promise<{
     return undefined;
   };
 
-  const currentUser = await fetchUserInfo();
+  const currentUser = publicPath ? undefined : await fetchUserInfo();
 
   if (currentUser) {
     if (currentUser.currentTenant?.isHost) {
@@ -136,6 +140,9 @@ export async function getInitialState(): Promise<{
 let initialMenus: Route[] | undefined = undefined;
 
 async function getMenu() {
+  if (typeof window !== 'undefined' && isPublicPath(window.location.pathname)) {
+    return [];
+  }
   if (initialMenus) {
     return initialMenus;
   }
@@ -262,7 +269,10 @@ export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) =
 };
 
 export function rootContainer(container: any) {
-  return React.createElement(StripeProvider, null, React.createElement(Realtime, null, container));
+  if (typeof window !== 'undefined' && isPublicPath(window.location.pathname)) {
+    return container;
+  }
+  return React.createElement(Realtime, null, container);
 }
 
 function errorInterceptor() {

@@ -1,14 +1,18 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { PlusOutlined } from '@ant-design/icons';
-import type { ActionType, ProColumnType } from '@ant-design/pro-components';
+import { CreditCardOutlined, PlusOutlined } from '@ant-design/icons';
+import type {
+  ActionType,
+  ProColumnType,
+  ProDescriptionsItemProps,
+} from '@ant-design/pro-components';
 import {
   PageContainer,
   ProDescriptions,
   ProTable,
   TableDropdown,
 } from '@ant-design/pro-components';
-import { FormattedMessage } from '@umijs/max';
-import { Button, Drawer, message } from 'antd';
+import { FormattedMessage, request } from '@umijs/max';
+import { Button, Drawer, Form, Input, message, Modal } from 'antd';
 import React, { useRef, useState } from 'react';
 // import UpdateForm from './components/UpdateForm';
 import { requestTransform } from '@gosaas/core';
@@ -19,8 +23,16 @@ import { useIntl } from '@umijs/max';
 
 const service = new OrderServiceApi();
 
+type SSLCommerzCheckoutReply = {
+  redirect_url?: string;
+  redirectUrl?: string;
+};
+
 const TableList: React.FC = () => {
   const [updateModalVisible, handleUpdateModalVisible] = useState<boolean>(false);
+  const [payModalVisible, setPayModalVisible] = useState<boolean>(false);
+  const [payLoading, setPayLoading] = useState<boolean>(false);
+  const [payForm] = Form.useForm();
 
   const [showDetail, setShowDetail] = useState<boolean>(false);
 
@@ -146,43 +158,70 @@ const TableList: React.FC = () => {
       title: <FormattedMessage id="ticketing.order.payWay" defaultMessage="payWay" />,
       dataIndex: 'payWay',
       valueType: 'text',
+      renderText: (_, record) => record.payProvider,
     },
 
     {
       title: <FormattedMessage id="common.operate" defaultMessage="Operate" />,
       key: 'option',
       valueType: 'option',
-      render: (_, record) => [
-        <a
-          key="editable"
-          onClick={() => {
-            setCurrentRow(record);
-            setShowDetail(false);
-            handleUpdateModalVisible(true);
-          }}
-        >
-          <FormattedMessage id="common.edit" defaultMessage="Edit" />
-        </a>,
-        <TableDropdown
-          key="actionGroup"
-          onSelect={async (key) => {
-            // if (key === 'delete') {
-            //   const ok = await handleRemove(record);
-            //   if (ok && actionRef.current) {
-            //     actionRef.current.reload();
-            //   }
-            // }
-          }}
-          menus={
-            [
-              // {
-              //   key: 'delete',
-              //   name: <FormattedMessage id="common.delete" defaultMessage="Delete" />,
-              // },
-            ]
-          }
-        />,
-      ],
+      render: (_, record) => {
+        const actions: React.ReactNode[] = [];
+        if (record.status !== 'PAID') {
+          actions.push(
+            <Button
+              key="pay"
+              type="link"
+              size="small"
+              icon={<CreditCardOutlined />}
+              onClick={() => {
+                setCurrentRow(record);
+                setPayModalVisible(true);
+                payForm.setFieldsValue({
+                  customer_country: 'Bangladesh',
+                  customer_city: 'Dhaka',
+                });
+              }}
+            >
+              <FormattedMessage id="payment.pay" defaultMessage="Pay" />
+            </Button>,
+          );
+        }
+        actions.push(
+          <a
+            key="editable"
+            onClick={() => {
+              setCurrentRow(record);
+              setShowDetail(false);
+              handleUpdateModalVisible(true);
+            }}
+          >
+            <FormattedMessage id="common.edit" defaultMessage="Edit" />
+          </a>,
+        );
+        actions.push(
+          <TableDropdown
+            key="actionGroup"
+            onSelect={async (key) => {
+              // if (key === 'delete') {
+              //   const ok = await handleRemove(record);
+              //   if (ok && actionRef.current) {
+              //     actionRef.current.reload();
+              //   }
+              // }
+            }}
+            menus={
+              [
+                // {
+                //   key: 'delete',
+                //   name: <FormattedMessage id="common.delete" defaultMessage="Delete" />,
+                // },
+              ]
+            }
+          />,
+        );
+        return actions;
+      },
     },
   ];
 
@@ -225,9 +264,103 @@ const TableList: React.FC = () => {
         destroyOnClose
       >
         {currentRow?.id && (
-          <ProDescriptions<V1Order> column={1} dataSource={currentRow} columns={columns} />
+          <ProDescriptions<V1Order>
+            column={1}
+            dataSource={currentRow}
+            columns={columns as ProDescriptionsItemProps<V1Order>[]}
+          />
         )}
       </Drawer>
+      <Modal
+        title="SSLCommerz"
+        open={payModalVisible}
+        okText={intl.formatMessage({ id: 'common.continue', defaultMessage: 'Continue' })}
+        cancelText={intl.formatMessage({ id: 'common.cancel', defaultMessage: 'Cancel' })}
+        confirmLoading={payLoading}
+        onCancel={() => {
+          if (!payLoading) {
+            setPayModalVisible(false);
+          }
+        }}
+        onOk={() => payForm.submit()}
+        destroyOnClose
+      >
+        <Form
+          form={payForm}
+          layout="vertical"
+          onFinish={async (values) => {
+            if (!currentRow?.id) {
+              return;
+            }
+            setPayLoading(true);
+            try {
+              const resp = await request<SSLCommerzCheckoutReply>(
+                `/v1/payment/sslcommerz/orders/${encodeURIComponent(currentRow.id)}/checkout`,
+                {
+                  method: 'POST',
+                  data: {
+                    customer_name: values.customer_name,
+                    customer_email: values.customer_email,
+                    customer_phone: values.customer_phone,
+                    customer_city: values.customer_city,
+                    customer_country: values.customer_country,
+                  },
+                },
+              );
+              const redirectUrl = resp.redirect_url ?? resp.redirectUrl;
+              if (!redirectUrl) {
+                message.error(
+                  intl.formatMessage({
+                    id: 'payment.sslcommerz.redirectMissing',
+                    defaultMessage: 'Payment redirect is unavailable.',
+                  }),
+                );
+                return;
+              }
+              window.location.assign(redirectUrl);
+            } finally {
+              setPayLoading(false);
+            }
+          }}
+        >
+          <Form.Item
+            name="customer_phone"
+            label={intl.formatMessage({ id: 'account.phone', defaultMessage: 'Phone' })}
+            rules={[
+              {
+                required: true,
+                min: 6,
+                max: 20,
+              },
+            ]}
+          >
+            <Input autoComplete="tel" />
+          </Form.Item>
+          <Form.Item
+            name="customer_name"
+            label={intl.formatMessage({ id: 'account.name', defaultMessage: 'Name' })}
+          >
+            <Input autoComplete="name" />
+          </Form.Item>
+          <Form.Item
+            name="customer_email"
+            label={intl.formatMessage({ id: 'account.email', defaultMessage: 'Email' })}
+            rules={[
+              {
+                type: 'email',
+              },
+            ]}
+          >
+            <Input autoComplete="email" />
+          </Form.Item>
+          <Form.Item name="customer_city" label="City">
+            <Input />
+          </Form.Item>
+          <Form.Item name="customer_country" label="Country">
+            <Input />
+          </Form.Item>
+        </Form>
+      </Modal>
       {/* <UpdateForm
         onSubmit={async (value) => {
           let success = false;

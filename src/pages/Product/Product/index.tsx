@@ -1,5 +1,9 @@
 import { PlusOutlined } from '@ant-design/icons';
-import type { ActionType, ProColumnType } from '@ant-design/pro-components';
+import type {
+  ActionType,
+  ProColumnType,
+  ProDescriptionsItemProps,
+} from '@ant-design/pro-components';
 import {
   PageContainer,
   ProDescriptions,
@@ -260,7 +264,7 @@ const TableList: React.FC = () => {
             params={{
               id: currentRow?.id,
             }}
-            columns={columns}
+            columns={columns as ProDescriptionsItemProps<V1Product>[]}
           />
         )}
       </Drawer>

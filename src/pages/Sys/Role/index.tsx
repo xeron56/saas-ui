@@ -18,8 +18,8 @@ import UpdateForm from './components/UpdateForm';
 import { requestTransform } from '@gosaas/core';
 import type {
   V1CreateRoleRequest,
-  V1UpdateRole,
-  V1UpdateRoleRequest,
+  RoleServiceUpdateRoleRequest,
+  RoleServiceUpdateRoleRequestRole,
   V1Role,
   V1RoleFilter,
 } from '@gosaas/api';
@@ -54,12 +54,12 @@ const TableList: React.FC = () => {
     }
   };
 
-  const handleUpdate = async (fields: V1UpdateRoleRequest) => {
+  const handleUpdate = async (fields: RoleServiceUpdateRoleRequest) => {
     const hide = message.loading(
       intl.formatMessage({ id: 'common.updating', defaultMessage: 'Updating...' }),
     );
     try {
-      await new RoleServiceApi().roleServiceUpdateRole2({ body: fields, roleId: fields.role!.id! });
+      await new RoleServiceApi().roleServiceUpdateRole2({ body: fields, roleId: currentRow!.id! });
       hide();
       message.success(
         intl.formatMessage({ id: 'common.updated', defaultMessage: 'Update Successfully' }),
@@ -269,7 +269,7 @@ const TableList: React.FC = () => {
           const { id } = value;
           let success = false;
           if (id) {
-            success = await handleUpdate({ role: value as V1UpdateRole });
+            success = await handleUpdate({ role: value as RoleServiceUpdateRoleRequestRole });
           } else {
             success = await handleAdd(value as V1CreateRoleRequest);
           }

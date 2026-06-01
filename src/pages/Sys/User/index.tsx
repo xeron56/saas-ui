@@ -1,5 +1,9 @@
 import { PlusOutlined } from '@ant-design/icons';
-import type { ActionType, ProColumnType } from '@ant-design/pro-components';
+import type {
+  ActionType,
+  ProColumnType,
+  ProDescriptionsItemProps,
+} from '@ant-design/pro-components';
 import {
   PageContainer,
   ProDescriptions,
@@ -56,7 +60,7 @@ const TableList: React.FC = () => {
       intl.formatMessage({ id: 'common.updating', defaultMessage: 'Updating...' }),
     );
     try {
-      await service.userServiceUpdateUser2({ body: fields, userId: fields.user!.id! });
+      await service.userServiceUpdateUser2({ body: fields, userId: currentRow!.id! });
       hide();
       message.success(
         intl.formatMessage({ id: 'common.updated', defaultMessage: 'Update Successfully' }),
@@ -242,7 +246,7 @@ const TableList: React.FC = () => {
             params={{
               id: currentRow?.id,
             }}
-            columns={columns}
+            columns={columns as ProDescriptionsItemProps<V1User>[]}
           />
         )}
       </Drawer>

@@ -53,6 +53,7 @@ export default defineConfig({
   manifest: {
     basePath: '/',
   },
+  metas: [{ name: 'viewport', content: 'width=device-width, initial-scale=1.0' }],
   monorepoRedirect: { srcDir: ['.', 'src'], peerDeps: true },
   // Fast Refresh 热更新
   fastRefresh: true,

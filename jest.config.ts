@@ -1,20 +1,28 @@
-import { configUmiAlias, createConfig } from '@umijs/max/test';
+import { createConfig } from '@umijs/max/test';
 
 export default async () => {
-  const config = await configUmiAlias({
-    ...createConfig({
-      target: 'browser',
-    }),
+  const config = createConfig({
+    target: 'browser',
   });
 
-  console.log();
   return {
     ...config,
     testEnvironmentOptions: {
       ...(config?.testEnvironmentOptions || {}),
       url: 'http://localhost:8000',
     },
-    setupFiles: [...(config.setupFiles || []), './tests/setupTests.jsx'],
+    moduleNameMapper: {
+      '^@/enums/(.*)$': '<rootDir>/packages/core/src/enums/$1',
+      '^@/permission$': '<rootDir>/packages/core/src/permission/index.ts',
+      '^@/permission/(.*)$': '<rootDir>/packages/core/src/permission/$1',
+      ...(config.moduleNameMapper || {}),
+      '^@/(.*)$': '<rootDir>/src/$1',
+      '^@@/(.*)$': '<rootDir>/src/.umi/$1',
+      '^@gosaas/api$': '<rootDir>/packages/api',
+      '^@gosaas/core$': '<rootDir>/packages/core/src',
+    },
+    setupFiles: [...(config.setupFiles || [])],
+    setupFilesAfterEnv: [...(config.setupFilesAfterEnv || []), '<rootDir>/tests/setupTests.js'],
     globals: {
       ...config.globals,
       localStorage: null,

@@ -1,7 +1,7 @@
 import { LogoutOutlined, SettingOutlined, UserOutlined } from '@ant-design/icons';
 import { history, useModel } from '@umijs/max';
 import { Avatar, Spin } from 'antd';
-import type { ItemType } from 'antd/lib/menu/hooks/useItems';
+import type { ItemType } from 'antd/es/menu/interface';
 
 import type { MenuInfo } from 'rc-menu/lib/interface';
 import React, { useCallback } from 'react';

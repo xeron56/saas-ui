@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useIntl, useModel } from '@umijs/max';
-import { Dropdown, Space, Image } from 'antd';
+import { Dropdown, Space } from 'antd';
 import { FormattedMessage } from '@umijs/max';
 import { DownOutlined, PlusOutlined } from '@ant-design/icons';
 import { useEmotionCss } from '@ant-design/use-emotion-css';

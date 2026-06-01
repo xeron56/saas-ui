@@ -9,6 +9,7 @@ import saas from './zh-CN/saas';
 import sys from './zh-CN/sys';
 import admin from './zh-CN/admin';
 import product from './zh-CN/product';
+import payment from './zh-CN/payment';
 export default {
   'navBar.lang': '语言',
   'layout.user.link.help': '帮助',
@@ -29,4 +30,5 @@ export default {
   ...sys,
   ...admin,
   ...product,
+  ...payment,
 };

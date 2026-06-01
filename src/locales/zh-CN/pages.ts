@@ -73,4 +73,5 @@ export default {
   'pages.register.email.tab': '邮箱注册',
   'pages.confirmPassword.placeholder': '确认密码',
   'pages.confirmPassword.mismatch': '确认密码不匹配',
+  'pages.resetPassword.invalidLink': '重置链接无效。',
 };

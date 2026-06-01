@@ -1,14 +1,17 @@
 import type { ProFormInstance } from '@ant-design/pro-components';
-import { ProFormText, DrawerForm, ProFormSwitch } from '@ant-design/pro-components';
+import {
+  DrawerForm,
+  ProFormDigit,
+  ProFormSelect,
+  ProFormSwitch,
+  ProFormText,
+} from '@ant-design/pro-components';
 import { useIntl } from '@umijs/max';
 import React, { useEffect, useRef } from 'react';
-import type { V1CreatePlanRequest, V1UpdatePlan } from '@gosaas/api';
-import { PlanServiceApi } from '@gosaas/api';
-import PriceForm from '../../../Product/Price/PriceForm';
+import { getAdminPlan } from '../service';
+import type { LegacyPlanFormValues } from '../types';
 
-const service = new PlanServiceApi();
-
-export type FormValueType = V1CreatePlanRequest & V1UpdatePlan;
+export type FormValueType = LegacyPlanFormValues;
 
 export type UpdateFormProps = {
   onCancel: (flag?: boolean, formVals?: FormValueType) => void;
@@ -21,19 +24,17 @@ const UpdateForm: React.FC<UpdateFormProps> = (props) => {
   const intl = useIntl();
   const formRef = useRef<ProFormInstance>();
   useEffect(() => {
-    //fetch role detail
     if (props.values?.key && props.updateModalVisible) {
-      service.planServiceGetPlan({ key: props.values?.key }).then((resp) => {
+      getAdminPlan(props.values.key).then((resp) => {
         formRef?.current?.setFieldsValue(resp.data);
       });
     }
   }, [props]);
-  //transform logo into file list
 
   return (
     <DrawerForm
       formRef={formRef}
-      initialValues={props.values}
+      initialValues={{ status: true, currency_code: 'BDT', subdomain_limit: 0, ...props.values }}
       open={props.updateModalVisible}
       onFinish={async (formData) => {
         await props.onSubmit(formData);
@@ -60,10 +61,10 @@ const UpdateForm: React.FC<UpdateFormProps> = (props) => {
         />
       )}
       <ProFormText
-        name="displayName"
+        name="subscriptionName"
         label={intl.formatMessage({
-          id: 'saas.plan.displayName',
-          defaultMessage: 'Plan DisplayName',
+          id: 'saas.plan.subscriptionName',
+          defaultMessage: 'Subscription name',
         })}
         rules={[
           {
@@ -71,23 +72,81 @@ const UpdateForm: React.FC<UpdateFormProps> = (props) => {
           },
         ]}
       />
-      <ProFormText
-        name="sort"
+      <ProFormDigit
+        name="duration"
         label={intl.formatMessage({
-          id: 'saas.plan.sort',
-          defaultMessage: 'Sort',
+          id: 'saas.plan.duration',
+          defaultMessage: 'Duration in days',
+        })}
+        min={1}
+        fieldProps={{ precision: 0 }}
+        rules={[{ required: true }]}
+      />
+      <ProFormDigit
+        name="subscriptionPrice"
+        label={intl.formatMessage({
+          id: 'saas.plan.subscriptionPrice',
+          defaultMessage: 'Subscription price',
+        })}
+        min={0}
+        fieldProps={{ precision: 2 }}
+        rules={[{ required: true }]}
+      />
+      <ProFormDigit
+        name="offerPrice"
+        label={intl.formatMessage({
+          id: 'saas.plan.offerPrice',
+          defaultMessage: 'Offer price',
+        })}
+        min={0}
+        fieldProps={{ precision: 2 }}
+      />
+      <ProFormDigit
+        name="affiliate_commission"
+        label={intl.formatMessage({
+          id: 'saas.plan.affiliateCommission',
+          defaultMessage: 'Referral commission %',
+        })}
+        min={0}
+        max={100}
+        fieldProps={{ precision: 2 }}
+      />
+      <ProFormSelect
+        name="currency_code"
+        label={intl.formatMessage({
+          id: 'saas.plan.currencyCode',
+          defaultMessage: 'Currency',
+        })}
+        options={[
+          { label: 'BDT', value: 'BDT' },
+          { label: 'USD', value: 'USD' },
+          { label: 'EUR', value: 'EUR' },
+        ]}
+        rules={[{ required: true }]}
+      />
+      <ProFormDigit
+        name="subdomain_limit"
+        label={intl.formatMessage({
+          id: 'saas.plan.subdomainLimit',
+          defaultMessage: 'Subdomain limit',
+        })}
+        min={0}
+        fieldProps={{ precision: 0 }}
+      />
+      <ProFormSwitch
+        name="allow_multibranch"
+        label={intl.formatMessage({
+          id: 'saas.plan.allowMultibranch',
+          defaultMessage: 'Allow multi-branch',
         })}
       />
-      {props.values.key && (
-        <ProFormSwitch
-          name="active"
-          label={intl.formatMessage({
-            id: 'saas.plan.active',
-            defaultMessage: 'Active',
-          })}
-        />
-      )}
-      <PriceForm></PriceForm>
+      <ProFormSwitch
+        name="status"
+        label={intl.formatMessage({
+          id: 'saas.plan.active',
+          defaultMessage: 'Active',
+        })}
+      />
     </DrawerForm>
   );
 };

@@ -1,5 +1,9 @@
 import { PlusOutlined } from '@ant-design/icons';
-import type { ActionType, ProColumnType } from '@ant-design/pro-components';
+import type {
+  ActionType,
+  ProColumnType,
+  ProDescriptionsItemProps,
+} from '@ant-design/pro-components';
 import {
   PageContainer,
   ProDescriptions,
@@ -91,10 +95,10 @@ const TableList: React.FC = () => {
       limit: limit.toString(),
       afterPageToken: afterPageToken,
     });
-    setTotalSize(resp.data?.totalSize | 0);
+    setTotalSize(resp.data?.totalSize ?? 0);
     setAllData([...(allData ?? []), ...(resp.data?.items ?? [])]);
     setHasMore((resp.data?.items ?? []).length === limit);
-    setAfterPageToken(resp.data?.nextAfterPageToken);
+    setAfterPageToken(resp.data?.nextAfterPageToken ?? undefined);
   };
   useEffect(() => {
     fetchData();
@@ -384,7 +388,7 @@ const TableList: React.FC = () => {
               params={{
                 id: currentRow?.clientId,
               }}
-              columns={columns(detailColumns)}
+              columns={columns(detailColumns) as ProDescriptionsItemProps<ClientOAuth2Client>[]}
             />
           )}
         </Drawer>

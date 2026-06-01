@@ -149,11 +149,4 @@ export interface V1Price {
      * @memberof V1Price
      */
     'type'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof V1Price
-     */
-    'stripePriceId'?: string | null;
 }
-

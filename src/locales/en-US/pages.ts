@@ -75,4 +75,5 @@ export default {
   'pages.register.email.tab': 'By email',
   'pages.confirmPassword.placeholder': 'Confrim Password',
   'pages.confirmPassword.mismatch': 'Confirm Password Mismatch',
+  'pages.resetPassword.invalidLink': 'Reset link is invalid.',
 };

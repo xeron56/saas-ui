@@ -1,5 +1,9 @@
 import { PlusOutlined } from '@ant-design/icons';
-import type { ActionType, ProColumnType } from '@ant-design/pro-components';
+import type {
+  ActionType,
+  ProColumnType,
+  ProDescriptionsItemProps,
+} from '@ant-design/pro-components';
 import {
   PageContainer,
   ProDescriptions,
@@ -7,8 +11,8 @@ import {
   TableDropdown,
 } from '@ant-design/pro-components';
 import { FormattedMessage } from '@umijs/max';
-import { Button, Drawer, message, Image } from 'antd';
-import React, { useRef, useState } from 'react';
+import { Button, Drawer, message, Image, Modal, Form, Select, Input } from 'antd';
+import React, { useEffect, useRef, useState } from 'react';
 import UpdateForm from './components/UpdateForm';
 import { requestTransform } from '@gosaas/core';
 import type {
@@ -17,15 +21,22 @@ import type {
   TenantServiceUpdateTenantRequest,
   V1Tenant,
   V1TenantFilter,
+  V1Plan,
 } from '@gosaas/api';
-import { TenantServiceApi } from '@gosaas/api';
+import { PlanServiceApi, TenantServiceApi } from '@gosaas/api';
+import { upgradeTenantPlan } from '../SubscriptionOrder/service';
 
 import { useIntl } from '@umijs/max';
 
 const service = new TenantServiceApi();
+const planService = new PlanServiceApi();
 
 const TableList: React.FC = () => {
   const [updateModalVisible, handleUpdateModalVisible] = useState<boolean>(false);
+  const [upgradeModalVisible, setUpgradeModalVisible] = useState<boolean>(false);
+  const [upgradeLoading, setUpgradeLoading] = useState<boolean>(false);
+  const [plans, setPlans] = useState<V1Plan[]>([]);
+  const [upgradeForm] = Form.useForm();
 
   const [showDetail, setShowDetail] = useState<boolean>(false);
 
@@ -33,6 +44,12 @@ const TableList: React.FC = () => {
   const [currentRow, setCurrentRow] = useState<V1Tenant | undefined | null>(undefined);
 
   const intl = useIntl();
+  useEffect(() => {
+    planService
+      .planServiceListPlan2({ body: { pageSize: -1 } })
+      .then((resp) => setPlans(resp.data.items ?? []));
+  }, []);
+
   const handleAdd = async (fields: V1CreateTenantRequest) => {
     const hide = message.loading(
       intl.formatMessage({ id: 'common.creating', defaultMessage: 'Creating...' }),
@@ -141,6 +158,17 @@ const TableList: React.FC = () => {
       valueType: 'option',
       render: (_, record) => [
         <a
+          key="upgrade"
+          onClick={() => {
+            setCurrentRow(record);
+            upgradeForm.resetFields();
+            upgradeForm.setFieldsValue({ gateway: 'sslcommerz' });
+            setUpgradeModalVisible(true);
+          }}
+        >
+          <FormattedMessage id="saas.tenant.upgradePlan" defaultMessage="Upgrade Plan" />
+        </a>,
+        <a
           key="editable"
           onClick={() => {
             setCurrentRow(record);
@@ -224,10 +252,88 @@ const TableList: React.FC = () => {
             params={{
               id: currentRow?.id,
             }}
-            columns={columns}
+            columns={columns as ProDescriptionsItemProps<V1Tenant>[]}
           />
         )}
       </Drawer>
+      <Modal
+        title={intl.formatMessage({
+          id: 'saas.tenant.upgradePlan',
+          defaultMessage: 'Upgrade Plan',
+        })}
+        open={upgradeModalVisible}
+        confirmLoading={upgradeLoading}
+        onCancel={() => {
+          if (!upgradeLoading) {
+            setUpgradeModalVisible(false);
+            setCurrentRow(undefined);
+          }
+        }}
+        onOk={() => upgradeForm.submit()}
+        destroyOnClose
+      >
+        <Form
+          form={upgradeForm}
+          layout="vertical"
+          onFinish={async (values) => {
+            if (!currentRow?.id) {
+              return;
+            }
+            setUpgradeLoading(true);
+            try {
+              await upgradeTenantPlan(currentRow.id, values);
+              message.success(
+                intl.formatMessage({
+                  id: 'common.updated',
+                  defaultMessage: 'Update Successfully',
+                }),
+              );
+              setUpgradeModalVisible(false);
+              setCurrentRow(undefined);
+              actionRef.current?.reload();
+            } finally {
+              setUpgradeLoading(false);
+            }
+          }}
+        >
+          <Form.Item
+            name="plan_key"
+            label={intl.formatMessage({
+              id: 'saas.subscriptionOrder.plan',
+              defaultMessage: 'Plan',
+            })}
+            rules={[{ required: true }]}
+          >
+            <Select
+              showSearch
+              options={plans.map((plan) => ({
+                label: plan.displayName ?? plan.key,
+                value: plan.key,
+              }))}
+              optionFilterProp="label"
+            />
+          </Form.Item>
+          <Form.Item
+            name="gateway"
+            label={intl.formatMessage({
+              id: 'saas.subscriptionOrder.gateway',
+              defaultMessage: 'Gateway',
+            })}
+          >
+            <Select options={[{ label: 'SSLCommerz', value: 'sslcommerz' }]} />
+          </Form.Item>
+          <Form.Item
+            name="notes"
+            label={intl.formatMessage({
+              id: 'saas.subscriptionOrder.notes',
+              defaultMessage: 'Notes',
+            })}
+            rules={[{ required: true, max: 255 }]}
+          >
+            <Input.TextArea rows={4} maxLength={255} showCount />
+          </Form.Item>
+        </Form>
+      </Modal>
       <UpdateForm
         onSubmit={async (value) => {
           const { id } = value;
