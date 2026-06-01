@@ -1,0 +1,91 @@
+.retail-label-print-zone {
+  margin-top: 16px;
+}
+
+.retail-label-sheet {
+  --label-columns: 3;
+  display: grid;
+  grid-template-columns: repeat(var(--label-columns), minmax(0, 1fr));
+  gap: 8px;
+}
+
+.retail-label-card {
+  min-height: 112px;
+  padding: 10px 12px;
+  overflow: hidden;
+  border: 1px solid #c7cbd1;
+  border-radius: 6px;
+  background: #fff;
+  break-inside: avoid;
+}
+
+.retail-label-name {
+  min-height: 18px;
+  margin-bottom: 5px;
+  overflow: hidden;
+  color: #1f2933;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.retail-label-barcode {
+  display: block;
+  width: 100%;
+  height: 42px;
+  margin: 3px 0 5px;
+  fill: #111;
+}
+
+.retail-label-code {
+  color: #111;
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+  letter-spacing: 0;
+}
+
+.retail-label-price {
+  margin-top: 2px;
+  color: #096b5a;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+}
+
+@media print {
+  @page {
+    margin: 8mm;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .retail-label-print-zone,
+  .retail-label-print-zone * {
+    visibility: visible;
+  }
+
+  .retail-label-print-zone {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    margin: 0;
+  }
+
+  .retail-label-sheet {
+    gap: 5mm;
+  }
+
+  .retail-label-card {
+    min-height: 26mm;
+    border-color: #111;
+    border-radius: 0;
+  }
+}
