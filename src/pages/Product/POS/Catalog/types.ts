@@ -109,6 +109,14 @@ export type CatalogKitLine = {
   quantity?: number;
 };
 
+export type CatalogAddonGroup = {
+  id: string;
+  label: string;
+  code?: string;
+  addon_group_code?: string;
+  active?: boolean;
+};
+
 export type CatalogItemRequest = {
   display_name?: string;
   item_code?: string;
@@ -136,6 +144,8 @@ export type CatalogItemRequest = {
   capacity_label?: string;
   type_label?: string;
   has_serial?: boolean;
+  is_addon_product?: boolean;
+  addon_group_ids?: string[];
   variation_refs?: JsonMap;
   warranty_profile?: JsonMap;
   active?: boolean;
@@ -155,6 +165,8 @@ export type CatalogItem = CatalogItemRequest & {
   available_stock?: number;
   stock_value?: number;
   low_stock?: boolean;
+  addon_groups?: CatalogAddonGroup[];
+  customizable?: boolean;
 };
 
 export type CatalogListReply = {

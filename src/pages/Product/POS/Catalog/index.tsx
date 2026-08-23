@@ -11,6 +11,7 @@ import { useLocation } from '@umijs/max';
 import { Button, message, Modal, Popconfirm, Space, Statistic, Tag, Upload } from 'antd';
 import type { RcFile } from 'antd/es/upload';
 import React, { useEffect, useRef, useState } from 'react';
+import { listRetailAddonGroups } from '../AddonGroup/service';
 import CatalogEditor from './CatalogEditor';
 import {
   createCatalogItem,
@@ -24,6 +25,7 @@ import {
   updateCatalogItem,
 } from './service';
 import type {
+  CatalogAddonGroup,
   CatalogItem,
   CatalogItemKind,
   CatalogItemRequest,
@@ -52,6 +54,7 @@ const CatalogPage: React.FC = () => {
   const actionRef = useRef<ActionType>();
   const initialItemKind = readCatalogKindFilter(location.search);
   const [lookups, setLookups] = useState<CatalogLookupReply>();
+  const [addonGroups, setAddonGroups] = useState<CatalogAddonGroup[]>([]);
   const [stockLots, setStockLots] = useState<CatalogStockLot[]>([]);
   const [editing, setEditing] = useState<CatalogItem>();
   const [draft, setDraft] = useState<Partial<CatalogItemRequest>>();
@@ -61,12 +64,14 @@ const CatalogPage: React.FC = () => {
   const [stockValue, setStockValue] = useState(0);
 
   const reloadLookups = async () => {
-    const [lookupResp, stockResp] = await Promise.all([
+    const [lookupResp, stockResp, addonGroupResp] = await Promise.all([
       getCatalogLookups(),
       listCatalogStock({ page_offset: 0, page_size: 200, active: true }),
+      listRetailAddonGroups({ page_offset: 0, page_size: 200, active: true }),
     ]);
     setLookups(lookupResp);
     setStockLots(stockResp.items || []);
+    setAddonGroups(addonGroupResp.items || addonGroupResp.data || []);
   };
 
   useEffect(() => {
@@ -169,6 +174,20 @@ const CatalogPage: React.FC = () => {
       title: 'Name',
       dataIndex: 'display_name',
       render: (_, record) => <a onClick={() => openEdit(record)}>{record.display_name}</a>,
+    },
+    {
+      title: 'Role',
+      dataIndex: 'is_addon_product',
+      search: false,
+      width: 120,
+      render: (_, record) =>
+        record.is_addon_product ? (
+          <Tag color="cyan">ADD-ON</Tag>
+        ) : record.customizable ? (
+          <Tag color="gold">CUSTOM</Tag>
+        ) : (
+          '-'
+        ),
     },
     {
       title: 'Code',
@@ -314,6 +333,7 @@ const CatalogPage: React.FC = () => {
         item={editing}
         initialValues={draft}
         lookups={lookups}
+        addonGroups={addonGroups}
         stockLots={stockLots}
         submitting={submitting}
         onClose={() => {

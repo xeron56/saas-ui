@@ -16,6 +16,7 @@ import {
 } from 'antd';
 import React, { useEffect, useMemo } from 'react';
 import type {
+  CatalogAddonGroup,
   CatalogItem,
   CatalogItemRequest,
   CatalogLookupReply,
@@ -35,6 +36,7 @@ type CatalogEditorProps = {
   initialValues?: Partial<CatalogItemRequest>;
   item?: CatalogItem;
   lookups?: CatalogLookupReply;
+  addonGroups?: CatalogAddonGroup[];
   stockLots?: CatalogStockLot[];
   submitting?: boolean;
   onClose: () => void;
@@ -74,14 +76,16 @@ const variationIDsFromRefs = (refs?: any) => {
   return raw.map((item: any) => String(item?.id || item).trim()).filter(Boolean);
 };
 
-const normalizeForForm = (item?: Partial<CatalogItemRequest>): CatalogEditorFormValues => {
+const normalizeForForm = (item?: Partial<CatalogItem>): CatalogEditorFormValues => {
   const warranty = item?.warranty_profile || {};
   const lots = item?.lots?.length ? item.lots : [{ quantity: 0, active: true }];
   return {
     item_kind: 'single',
     tax_mode: 'exclusive',
     active: true,
+    is_addon_product: false,
     ...item,
+    addon_group_ids: item?.addon_group_ids || item?.addon_groups?.map((group) => group.id) || [],
     lots: lots.map((lot) => ({
       ...lot,
       mfg_date: dateOnly(lot.mfg_date),
@@ -111,6 +115,7 @@ const CatalogEditor: React.FC<CatalogEditorProps> = ({
   initialValues,
   item,
   lookups,
+  addonGroups,
   stockLots,
   submitting,
   onClose,
@@ -143,6 +148,19 @@ const CatalogEditor: React.FC<CatalogEditorProps> = ({
           value: lot.id,
         })),
     [item?.id, stockLots],
+  );
+
+  const addonGroupOptions = useMemo(
+    () =>
+      (addonGroups || [])
+        .filter((group) => group.active !== false)
+        .map((group) => ({
+          label: `${group.label}${
+            group.addon_group_code || group.code ? ` (${group.addon_group_code || group.code})` : ''
+          }`,
+          value: group.id,
+        })),
+    [addonGroups],
   );
 
   useEffect(() => {
@@ -262,6 +280,7 @@ const CatalogEditor: React.FC<CatalogEditorProps> = ({
             }),
             lots: values.lots || [],
             bundle_lines: values.bundle_lines || [],
+            addon_group_ids: values.is_addon_product ? [] : values.addon_group_ids || [],
           });
         }}
       >
@@ -373,7 +392,33 @@ const CatalogEditor: React.FC<CatalogEditorProps> = ({
               <Switch />
             </Form.Item>
           </Col>
+          <Col xs={12} md={4}>
+            <Form.Item name="is_addon_product" label="Add-on" valuePropName="checked">
+              <Switch />
+            </Form.Item>
+          </Col>
         </Row>
+
+        <Form.Item
+          noStyle
+          shouldUpdate={(prev, next) => prev.is_addon_product !== next.is_addon_product}
+        >
+          {({ getFieldValue }) =>
+            getFieldValue('is_addon_product') ? null : (
+              <>
+                <Divider orientation="left">Add-on groups</Divider>
+                <Form.Item name="addon_group_ids" label="Assigned groups">
+                  <Select
+                    allowClear
+                    mode="multiple"
+                    optionFilterProp="label"
+                    options={addonGroupOptions}
+                  />
+                </Form.Item>
+              </>
+            )
+          }
+        </Form.Item>
 
         <Divider orientation="left">Pricing</Divider>
         <Row gutter={12}>
